@@ -1,0 +1,234 @@
+<Window x:Class="My_Fancy_Fences.ColorPickerWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="Wybierz kolor"
+        Width="330"
+        Height="390"
+        WindowStyle="None"
+        ResizeMode="CanResize"
+        WindowStartupLocation="CenterScreen"
+        Topmost="False"
+        ShowActivated="True"
+        Background="Transparent"
+        AllowsTransparency="True"
+        FontFamily="Segoe UI Variable Text, Segoe UI">
+    <Window.Resources>
+        <Style TargetType="Button">
+            <Setter Property="MinWidth" Value="78"/>
+            <Setter Property="Height" Value="32"/>
+            <Setter Property="Margin" Value="7,0,0,0"/>
+            <Setter Property="Foreground" Value="White"/>
+            <Setter Property="Background" Value="#FF303641"/>
+            <Setter Property="BorderThickness" Value="0"/>
+            <Setter Property="Cursor" Value="Hand"/>
+        </Style>
+        <Style TargetType="TextBox">
+            <Setter Property="Height" Value="32"/>
+            <Setter Property="Padding" Value="9,5"/>
+            <Setter Property="Foreground" Value="White"/>
+            <Setter Property="Background" Value="#FF242932"/>
+            <Setter Property="BorderBrush" Value="#FF363D49"/>
+            <Setter Property="BorderThickness" Value="1"/>
+            <Setter Property="CaretBrush" Value="White"/>
+            <Setter Property="VerticalContentAlignment" Value="Center"/>
+        </Style>
+        <Style x:Key="CompactSlider" TargetType="Slider">
+            <Setter Property="Height" Value="18"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Slider">
+                        <Grid>
+                            <Track x:Name="PART_Track">
+                                <Track.DecreaseRepeatButton>
+                                    <RepeatButton Command="Slider.DecreaseLarge"
+                                                  Opacity="0"/>
+                                </Track.DecreaseRepeatButton>
+                                <Track.Thumb>
+                                    <Thumb Width="12" Height="12">
+                                        <Thumb.Template>
+                                            <ControlTemplate TargetType="Thumb">
+                                                <Ellipse Fill="Transparent"
+                                                         Stroke="White"
+                                                         StrokeThickness="2"/>
+                                            </ControlTemplate>
+                                        </Thumb.Template>
+                                    </Thumb>
+                                </Track.Thumb>
+                                <Track.IncreaseRepeatButton>
+                                    <RepeatButton Command="Slider.IncreaseLarge"
+                                                  Opacity="0"/>
+                                </Track.IncreaseRepeatButton>
+                            </Track>
+                        </Grid>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+    </Window.Resources>
+
+    <Border CornerRadius="9"
+            BorderBrush="#FF343A45"
+            BorderThickness="1"
+            Background="#FF202329">
+        <Grid>
+            <Grid.RowDefinitions>
+                <RowDefinition Height="38"/>
+                <RowDefinition Height="112"/>
+                <RowDefinition Height="*"/>
+            </Grid.RowDefinitions>
+
+            <Border Grid.Row="0"
+                    CornerRadius="9,9,0,0"
+                    Background="#FF171A20"
+                    MouseLeftButtonDown="TitleBar_MouseLeftButtonDown">
+                <Grid Margin="13,0,5,0">
+                    <TextBlock Text="Kolor panelu"
+                               Foreground="White"
+                               FontSize="12"
+                               FontWeight="SemiBold"
+                               VerticalAlignment="Center"/>
+                    <Button Content="×"
+                            Width="30"
+                            Height="28"
+                            MinWidth="0"
+                            Margin="0"
+                            FontSize="19"
+                            Background="Transparent"
+                            HorizontalAlignment="Right"
+                            Click="CancelButton_Click"/>
+                </Grid>
+            </Border>
+
+            <Border Grid.Row="1" Background="#FF3E8E82">
+                <Border x:Name="LargeColorPreview"/>
+            </Border>
+
+            <Grid Grid.Row="2" Margin="17,14,17,15">
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="*"/>
+                    <RowDefinition Height="Auto"/>
+                </Grid.RowDefinitions>
+
+                <Grid>
+                    <TextBox x:Name="HexTextBox"
+                             TextChanged="HexTextBox_TextChanged"/>
+                </Grid>
+
+                <Grid Grid.Row="1" Margin="0,12,0,0">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="82"/>
+                        <ColumnDefinition Width="*"/>
+                    </Grid.ColumnDefinitions>
+                    <TextBlock Text="Barwa"
+                               Foreground="#FFB9C1CC"
+                               FontSize="11"
+                               VerticalAlignment="Center"/>
+                    <Border Grid.Column="1" Height="10" CornerRadius="5">
+                        <Border.Background>
+                            <LinearGradientBrush StartPoint="0,0.5" EndPoint="1,0.5">
+                                <GradientStop Color="#FFFF0000" Offset="0"/>
+                                <GradientStop Color="#FFFFFF00" Offset=".167"/>
+                                <GradientStop Color="#FF00FF00" Offset=".333"/>
+                                <GradientStop Color="#FF00FFFF" Offset=".5"/>
+                                <GradientStop Color="#FF0000FF" Offset=".667"/>
+                                <GradientStop Color="#FFFF00FF" Offset=".833"/>
+                                <GradientStop Color="#FFFF0000" Offset="1"/>
+                            </LinearGradientBrush>
+                        </Border.Background>
+                    </Border>
+                    <Slider x:Name="HueSlider"
+                            Grid.Column="1"
+                            Style="{StaticResource CompactSlider}"
+                            Minimum="0"
+                            Maximum="360"
+                            ValueChanged="ColorSlider_ValueChanged"/>
+                </Grid>
+
+                <Grid Grid.Row="2" Margin="0,7,0,0">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="82"/>
+                        <ColumnDefinition Width="*"/>
+                    </Grid.ColumnDefinitions>
+                    <TextBlock Text="Nasycenie"
+                               Foreground="#FFB9C1CC"
+                               FontSize="11"
+                               VerticalAlignment="Center"/>
+                    <Border x:Name="SaturationTrack"
+                            Grid.Column="1"
+                            Height="10"
+                            CornerRadius="5"/>
+                    <Slider x:Name="SaturationSlider"
+                            Grid.Column="1"
+                            Style="{StaticResource CompactSlider}"
+                            Minimum="0"
+                            Maximum="100"
+                            ValueChanged="ColorSlider_ValueChanged"/>
+                </Grid>
+
+                <Grid Grid.Row="3" Margin="0,7,0,0">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="82"/>
+                        <ColumnDefinition Width="*"/>
+                    </Grid.ColumnDefinitions>
+                    <TextBlock Text="Jasność"
+                               Foreground="#FFB9C1CC"
+                               FontSize="11"
+                               VerticalAlignment="Center"/>
+                    <Border x:Name="BrightnessTrack"
+                            Grid.Column="1"
+                            Height="10"
+                            CornerRadius="5"/>
+                    <Slider x:Name="BrightnessSlider"
+                            Grid.Column="1"
+                            Style="{StaticResource CompactSlider}"
+                            Minimum="0"
+                            Maximum="100"
+                            ValueChanged="ColorSlider_ValueChanged"/>
+                </Grid>
+
+                <Grid Grid.Row="4" Margin="0,7,0,8" VerticalAlignment="Top">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="82"/>
+                        <ColumnDefinition Width="*"/>
+                    </Grid.ColumnDefinitions>
+                    <TextBlock Text="Przezroczystość"
+                               Foreground="#FFB9C1CC"
+                               FontSize="11"
+                               VerticalAlignment="Center"/>
+                    <Border Grid.Column="1"
+                            Height="10"
+                            CornerRadius="5"
+                            Background="#FF60656E"/>
+                    <Border x:Name="OpacityTrack"
+                            Grid.Column="1"
+                            Height="10"
+                            CornerRadius="5"/>
+                    <Slider x:Name="OpacitySlider"
+                            Grid.Column="1"
+                            Style="{StaticResource CompactSlider}"
+                            Minimum="0"
+                            Maximum="100"
+                            ValueChanged="ColorSlider_ValueChanged"/>
+                </Grid>
+
+                <Grid Grid.Row="5">
+                    <TextBlock x:Name="ValuesText"
+                               Foreground="#FF9CA5B1"
+                               FontSize="11"
+                               VerticalAlignment="Center"/>
+                    <StackPanel Orientation="Horizontal"
+                                HorizontalAlignment="Right">
+                        <Button Content="Anuluj" Click="CancelButton_Click"/>
+                        <Button Content="Wybierz"
+                                Background="#FF3E8E82"
+                                Click="SelectButton_Click"/>
+                    </StackPanel>
+                </Grid>
+            </Grid>
+        </Grid>
+    </Border>
+</Window>

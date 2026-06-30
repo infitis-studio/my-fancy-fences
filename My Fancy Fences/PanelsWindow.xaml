@@ -1,0 +1,379 @@
+<Window x:Class="My_Fancy_Fences.PanelsWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:iconPacks="http://metro.mahapps.com/winfx/xaml/iconpacks"
+        Title="Ustawienia"
+        Width="670"
+        Height="540"
+        MinWidth="480"
+        MinHeight="360"
+        WindowStyle="None"
+        ResizeMode="CanResize"
+        WindowStartupLocation="CenterScreen"
+        Topmost="False"
+        ShowInTaskbar="True"
+        AllowsTransparency="True"
+        Background="Transparent"
+        Foreground="#FFE7E2E4"
+        FontFamily="Segoe UI Variable Text, Segoe UI"
+        FontSize="13">
+    <Window.Resources>
+        <Style TargetType="Button">
+            <Setter Property="MinWidth" Value="82"/>
+            <Setter Property="Height" Value="34"/>
+            <Setter Property="Padding" Value="13,7"/>
+            <Setter Property="Foreground" Value="#FFE7E2E4"/>
+            <Setter Property="Background" Value="#FF29292B"/>
+            <Setter Property="BorderThickness" Value="0"/>
+            <Setter Property="Cursor" Value="Hand"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <Border x:Name="ButtonBorder" CornerRadius="6" Background="{TemplateBinding Background}">
+                            <ContentPresenter Margin="{TemplateBinding Padding}"
+                                              HorizontalAlignment="Center"
+                                              VerticalAlignment="Center"/>
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="ButtonBorder" Property="Background" Value="#FF38383C"/>
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <Style x:Key="WindowCloseButtonStyle" TargetType="Button">
+            <Setter Property="Width" Value="34"/>
+            <Setter Property="MinWidth" Value="34"/>
+            <Setter Property="Height" Value="32"/>
+            <Setter Property="Padding" Value="0"/>
+            <Setter Property="Background" Value="Transparent"/>
+            <Setter Property="Foreground" Value="#FFE7E2E4"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <Border x:Name="ButtonBorder" CornerRadius="7" Background="{TemplateBinding Background}">
+                            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="ButtonBorder" Property="Background" Value="#FFE81123"/>
+                                <Setter Property="Foreground" Value="White"/>
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <Style x:Key="StatusToggleButtonStyle" TargetType="Button">
+            <Setter Property="MinWidth" Value="0"/>
+            <Setter Property="Height" Value="24"/>
+            <Setter Property="Padding" Value="14,4,11,4"/>
+            <Setter Property="Foreground" Value="#FFE4F0EA"/>
+            <Setter Property="Background" Value="#FF3B5149"/>
+            <Setter Property="FontSize" Value="10"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <Border x:Name="StatusBorder" CornerRadius="9" Background="{TemplateBinding Background}">
+                            <ContentPresenter Margin="{TemplateBinding Padding}"
+                                              HorizontalAlignment="Center"
+                                              VerticalAlignment="Center"/>
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="StatusBorder" Property="Background" Value="#FF4A655A"/>
+                                <Setter Property="Foreground" Value="White"/>
+                            </Trigger>
+                            <Trigger Property="Content" Value="Ukryty">
+                                <Setter TargetName="StatusBorder" Property="Background" Value="#FF584247"/>
+                                <Setter Property="Foreground" Value="#FFF0E2E5"/>
+                            </Trigger>
+                            <MultiTrigger>
+                                <MultiTrigger.Conditions>
+                                    <Condition Property="Content" Value="Ukryty"/>
+                                    <Condition Property="IsMouseOver" Value="True"/>
+                                </MultiTrigger.Conditions>
+                                <Setter TargetName="StatusBorder" Property="Background" Value="#FF6A5056"/>
+                                <Setter Property="Foreground" Value="White"/>
+                            </MultiTrigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <Style x:Key="CompactCheckBoxStyle" TargetType="CheckBox">
+            <Setter Property="Foreground" Value="#FFBDB6B9"/>
+            <Setter Property="Cursor" Value="Hand"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="CheckBox">
+                        <StackPanel Orientation="Horizontal">
+                            <Border x:Name="Box" Width="16" Height="16" CornerRadius="4"
+                                    Background="#FF252529" BorderBrush="#FF444449" BorderThickness="1">
+                                <Path x:Name="Mark" Width="8" Height="6"
+                                      Data="M 0 2.5 L 3 5.5 L 8 0" Stroke="White"
+                                      StrokeThickness="1.7" Visibility="Collapsed"/>
+                            </Border>
+                            <ContentPresenter Margin="7,0,0,0" VerticalAlignment="Center"/>
+                        </StackPanel>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="Box" Property="BorderBrush" Value="#FF77717A"/>
+                            </Trigger>
+                            <Trigger Property="IsChecked" Value="True">
+                                <Setter TargetName="Box" Property="Background" Value="#FF62505A"/>
+                                <Setter TargetName="Mark" Property="Visibility" Value="Visible"/>
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <Style x:Key="SettingsTabStyle" TargetType="RadioButton">
+            <Setter Property="Height" Value="34"/>
+            <Setter Property="Width" Value="158"/>
+            <Setter Property="Margin" Value="4,0"/>
+            <Setter Property="Foreground" Value="#FFA9A2A5"/>
+            <Setter Property="Cursor" Value="Hand"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="RadioButton">
+                        <Border x:Name="TabBorder" CornerRadius="6" Background="Transparent">
+                            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="TabBorder" Property="Background" Value="#FF29292D"/>
+                            </Trigger>
+                            <Trigger Property="IsChecked" Value="True">
+                                <Setter TargetName="TabBorder" Property="Background" Value="#FF3A3A3F"/>
+                                <Setter Property="Foreground" Value="#FFF1EDEE"/>
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+    </Window.Resources>
+
+    <Border BorderBrush="#FF3A3438" BorderThickness="1" CornerRadius="12" ClipToBounds="True">
+        <Border.Background>
+            <LinearGradientBrush StartPoint="0,0" EndPoint="1,1">
+                <GradientStop Color="#FF191719" Offset="0"/>
+                <GradientStop Color="#FF141416" Offset=".5"/>
+                <GradientStop Color="#FF111113" Offset="1"/>
+            </LinearGradientBrush>
+        </Border.Background>
+        <Grid>
+            <Grid.RowDefinitions>
+                <RowDefinition Height="46"/>
+                <RowDefinition Height="*"/>
+                <RowDefinition Height="58"/>
+            </Grid.RowDefinitions>
+
+            <Border CornerRadius="11,11,0,0" MouseLeftButtonDown="TitleBar_MouseLeftButtonDown">
+                <Border.Background>
+                    <LinearGradientBrush StartPoint="0,0" EndPoint="1,0">
+                        <GradientStop Color="#FF2B2025" Offset="0"/>
+                        <GradientStop Color="#FF1D1C20" Offset=".48"/>
+                        <GradientStop Color="#FF171719" Offset="1"/>
+                    </LinearGradientBrush>
+                </Border.Background>
+                <Grid Margin="16,0,7,0">
+                    <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                        <iconPacks:PackIconLucide Kind="Settings" Width="17" Height="17"
+                                                  Margin="0,0,10,0" Foreground="#FFC9C2C5"/>
+                        <TextBlock Text="Ustawienia" FontSize="14" FontWeight="SemiBold"
+                                   VerticalAlignment="Center"/>
+                    </StackPanel>
+                    <Button Content="×" Style="{StaticResource WindowCloseButtonStyle}"
+                            HorizontalAlignment="Right" FontSize="20" Click="CloseButton_Click"/>
+                </Grid>
+            </Border>
+
+            <Grid Grid.Row="1" Margin="22,16,18,12">
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="*"/>
+                </Grid.RowDefinitions>
+
+                <Grid Margin="0,0,0,15">
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="34"/>
+                        <RowDefinition Height="11"/>
+                    </Grid.RowDefinitions>
+                    <StackPanel Orientation="Horizontal" HorizontalAlignment="Center">
+                        <RadioButton Content="Ogólne" Tag="General" IsChecked="True"
+                                     GroupName="SettingsTabs" Style="{StaticResource SettingsTabStyle}"
+                                     Checked="SettingsTab_Checked"/>
+                        <RadioButton Content="Panele" Tag="Panels"
+                                     GroupName="SettingsTabs" Style="{StaticResource SettingsTabStyle}"
+                                     Checked="SettingsTab_Checked"/>
+                        <RadioButton Content="Import / eksport" Tag="ImportExport"
+                                     GroupName="SettingsTabs" Style="{StaticResource SettingsTabStyle}"
+                                     Checked="SettingsTab_Checked"/>
+                    </StackPanel>
+                    <Border Grid.Row="1" Height="1" Margin="0,10,0,0" Background="#FF343035"/>
+                </Grid>
+
+                <Grid Grid.Row="1">
+                    <Grid x:Name="GeneralTabContent" Margin="4,4,4,0">
+                        <StackPanel>
+                            <TextBlock Text="Ogólne" FontSize="18" FontWeight="SemiBold"/>
+                            <TextBlock Text="Podstawowe narzędzia aplikacji"
+                                       Margin="0,4,0,18" Foreground="#FFA9A2A5" FontSize="11"/>
+                            <Border Padding="16" CornerRadius="8" Background="#FF1E1E21"
+                                    BorderBrush="#FF303035" BorderThickness="1">
+                                <Grid>
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="38"/>
+                                        <ColumnDefinition Width="*"/>
+                                        <ColumnDefinition Width="Auto"/>
+                                    </Grid.ColumnDefinitions>
+                                    <iconPacks:PackIconLucide Kind="RefreshCw" Width="20" Height="20"
+                                                              Foreground="#FFCFC7CA" VerticalAlignment="Top"/>
+                                    <StackPanel Grid.Column="1" Margin="0,0,18,0">
+                                        <TextBlock Text="Odśwież ikony" FontWeight="SemiBold"/>
+                                        <TextBlock Margin="0,6,0,0" Foreground="#FFA9A2A5" FontSize="11"
+                                                   TextWrapping="Wrap"
+                                                   Text="Ponownie pobiera ikony skrótów we wszystkich panelach."/>
+                                    </StackPanel>
+                                    <Button Grid.Column="2" Content="Odśwież ikony"
+                                            VerticalAlignment="Center"
+                                            Click="RefreshIconsButton_Click"/>
+                                </Grid>
+                            </Border>
+                            <Border Margin="0,10,0,0" Padding="16" CornerRadius="8"
+                                    Background="#FF1E1E21" BorderBrush="#FF303035" BorderThickness="1">
+                                <Grid>
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="38"/>
+                                        <ColumnDefinition Width="*"/>
+                                        <ColumnDefinition Width="Auto"/>
+                                    </Grid.ColumnDefinitions>
+                                    <iconPacks:PackIconLucide Kind="MousePointerClick" Width="20" Height="20"
+                                                              Foreground="#FFCFC7CA" VerticalAlignment="Top"/>
+                                    <StackPanel Grid.Column="1" Margin="0,0,18,0">
+                                        <TextBlock Text="Uruchamianie elementów" FontWeight="SemiBold"/>
+                                        <TextBlock Margin="0,6,0,0" Foreground="#FFA9A2A5" FontSize="11"
+                                                   TextWrapping="Wrap"
+                                                   Text="Domyślnie ikony uruchamiają się pojedynczym kliknięciem."/>
+                                    </StackPanel>
+                                    <CheckBox x:Name="DoubleClickActivationCheckBox"
+                                              Grid.Column="2"
+                                              Content="Uruchamiaj dwuklikiem"
+                                              Style="{StaticResource CompactCheckBoxStyle}"
+                                              VerticalAlignment="Center"
+                                              Checked="DoubleClickActivationCheckBox_Changed"
+                                              Unchecked="DoubleClickActivationCheckBox_Changed"/>
+                                </Grid>
+                            </Border>
+                        </StackPanel>
+                    </Grid>
+
+                    <Grid x:Name="PanelsTabContent" Visibility="Collapsed">
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="Auto"/>
+                            <RowDefinition Height="Auto"/>
+                            <RowDefinition Height="*"/>
+                        </Grid.RowDefinitions>
+                        <Grid Margin="4,4,4,14">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="Auto"/>
+                            </Grid.ColumnDefinitions>
+                            <StackPanel>
+                                <TextBlock Text="Panele" FontSize="18" FontWeight="SemiBold"/>
+                                <TextBlock Text="Wszystkie panele utworzone w aplikacji"
+                                           Margin="0,4,0,0" Foreground="#FFA9A2A5" FontSize="11"/>
+                            </StackPanel>
+                            <Border Grid.Column="1" Padding="10,5" CornerRadius="10"
+                                    Background="#FF29292D" VerticalAlignment="Center">
+                                <TextBlock x:Name="PanelCountText" Foreground="#FFCFC7CA" FontSize="11"/>
+                            </Border>
+                        </Grid>
+                        <Border Grid.Row="1" Height="1" Margin="4,0,4,14" Background="#FF343035"/>
+                        <ScrollViewer Grid.Row="2" VerticalScrollBarVisibility="Auto"
+                                      HorizontalScrollBarVisibility="Disabled">
+                            <ItemsControl x:Name="PanelsItemsControl">
+                        <ItemsControl.ItemTemplate>
+                            <DataTemplate>
+                                <Border Margin="4,0,8,10" Padding="14,12" CornerRadius="8"
+                                        Background="#FF1E1E21" BorderBrush="#FF303035" BorderThickness="1">
+                                    <Grid>
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="42"/>
+                                            <ColumnDefinition Width="*"/>
+                                            <ColumnDefinition Width="Auto"/>
+                                        </Grid.ColumnDefinitions>
+                                        <Border Width="34" Height="34" CornerRadius="8"
+                                                Background="#FF2B2B2F" VerticalAlignment="Top">
+                                            <iconPacks:PackIconLucide Kind="{Binding Icon}" Width="18" Height="18"
+                                                                      Foreground="#FFD8D1D4"
+                                                                      HorizontalAlignment="Center"
+                                                                      VerticalAlignment="Center"/>
+                                        </Border>
+                                        <StackPanel Grid.Column="1" Margin="4,0,14,0">
+                                            <TextBlock Text="{Binding Title}" FontWeight="SemiBold" FontSize="13"
+                                                       TextTrimming="CharacterEllipsis"/>
+                                            <TextBlock Text="{Binding FolderPath}" Margin="0,5,0,0"
+                                                       Foreground="#FFA9A2A5" FontSize="10.5"
+                                                       TextTrimming="CharacterEllipsis"/>
+                                            <TextBlock Text="{Binding Details}" Margin="0,5,0,0"
+                                                       Foreground="#FF777177" FontSize="10.5"/>
+                                        </StackPanel>
+                                        <Button Grid.Column="2"
+                                                Content="{Binding Status}"
+                                                Tag="{Binding PanelKey}"
+                                                Style="{StaticResource StatusToggleButtonStyle}"
+                                                VerticalAlignment="Top"
+                                                HorizontalAlignment="Right"
+                                                Click="PanelVisibilityButton_Click"/>
+                                    </Grid>
+                                </Border>
+                            </DataTemplate>
+                        </ItemsControl.ItemTemplate>
+                            </ItemsControl>
+                        </ScrollViewer>
+                    </Grid>
+
+                    <StackPanel x:Name="ImportExportTabContent" Margin="4,4,4,0" Visibility="Collapsed">
+                        <TextBlock Text="Import / eksport" FontSize="18" FontWeight="SemiBold"/>
+                        <TextBlock Text="Przenoszenie konfiguracji aplikacji i paneli"
+                                   Margin="0,4,0,18" Foreground="#FFA9A2A5" FontSize="11"/>
+                        <Border Padding="16" CornerRadius="8" Background="#FF1E1E21"
+                                BorderBrush="#FF303035" BorderThickness="1">
+                            <Grid>
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="34"/>
+                                    <ColumnDefinition Width="*"/>
+                                </Grid.ColumnDefinitions>
+                                <iconPacks:PackIconLucide Kind="Archive" Width="20" Height="20"
+                                                          Foreground="#FFCFC7CA" VerticalAlignment="Top"/>
+                                <StackPanel Grid.Column="1">
+                                    <TextBlock Text="Kopia konfiguracji" FontWeight="SemiBold"/>
+                                    <TextBlock Margin="0,6,0,0" Foreground="#FFA9A2A5" FontSize="11"
+                                               TextWrapping="Wrap"
+                                               Text="Tutaj będzie można eksportować ustawienia do pliku oraz importować je na innym komputerze."/>
+                                </StackPanel>
+                            </Grid>
+                        </Border>
+                    </StackPanel>
+                </Grid>
+            </Grid>
+
+            <Border Grid.Row="2" Background="#FF1C1B1E" BorderBrush="#FF343035"
+                    BorderThickness="0,1,0,0" Padding="18,0" CornerRadius="0,0,11,11">
+                <Button Content="Zamknij" HorizontalAlignment="Right" VerticalAlignment="Center"
+                        Click="CloseButton_Click"/>
+            </Border>
+        </Grid>
+    </Border>
+</Window>

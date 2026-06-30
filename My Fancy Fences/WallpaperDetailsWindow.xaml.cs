@@ -1,0 +1,421 @@
+using System.Collections.ObjectModel;
+using System.IO;
+using System.Net.Http;
+using System.Net.Http.Headers;
+using System.Runtime.InteropServices;
+using System.Text.Json;
+using System.Text.Json.Serialization;
+using System.Windows;
+using System.Windows.Input;
+using System.Windows.Media;
+using System.Windows.Media.Animation;
+using System.Windows.Media.Imaging;
+
+namespace My_Fancy_Fences;
+
+public partial class WallpaperDetailsWindow : Window
+{
+    private const int SpiSetDeskWallpaper = 0x0014;
+    private const int SpifUpdateIniFile = 0x01;
+    private const int SpifSendWinIniChange = 0x02;
+
+    private static readonly HttpClient HttpClient = CreateHttpClient();
+    private readonly WallpaperCard _wallpaper;
+    private readonly ObservableCollection<PropertyRow> _properties = [];
+    private string? _fullImageUrl;
+    private bool _isCustomMaximized;
+    private bool _isResizing;
+    private Rect _restoreBounds;
+    private Point _resizeStartScreenPosition;
+    private double _resizeStartWidth;
+    private double _resizeStartHeight;
+
+    public WallpaperDetailsWindow(WallpaperCard wallpaper)
+    {
+        InitializeComponent();
+        Icon = AppIconProvider.Image;
+        ApplyInitialWindowSize();
+
+        _wallpaper = wallpaper;
+        _fullImageUrl = string.IsNullOrWhiteSpace(wallpaper.FullImageUrl)
+            ? wallpaper.PageUrl
+            : wallpaper.FullImageUrl;
+
+        PropertiesItemsControl.ItemsSource = _properties;
+        WallpaperPreviewImage.Source = new BitmapImage(new Uri(wallpaper.ThumbnailUrl));
+        ApplyFallbackProperties();
+        SizeChanged += (_, _) => ApplyRoundedWindowClip();
+
+        Loaded += async (_, _) =>
+        {
+            ApplyRoundedWindowClip();
+            await LoadDetailsAsync();
+        };
+    }
+
+    private void ApplyRoundedWindowClip()
+    {
+        if (Content is not FrameworkElement root || ActualWidth <= 0 || ActualHeight <= 0)
+            return;
+
+        var radius = _isCustomMaximized ? 0 : 13;
+        root.Clip = new RectangleGeometry(
+            new Rect(0, 0, ActualWidth, ActualHeight),
+            radius,
+            radius);
+    }
+
+    private void UpdateWindowChrome()
+    {
+        OuterWindowBorder.CornerRadius = _isCustomMaximized ? new CornerRadius(0) : new CornerRadius(13);
+        TitleBarBorder.CornerRadius = _isCustomMaximized ? new CornerRadius(0) : new CornerRadius(12, 12, 0, 0);
+        FooterBorder.CornerRadius = _isCustomMaximized ? new CornerRadius(0) : new CornerRadius(0, 0, 12, 12);
+        ResizeGrip.Visibility = _isCustomMaximized ? Visibility.Collapsed : Visibility.Visible;
+        ApplyRoundedWindowClip();
+    }
+
+    private void ApplyInitialWindowSize()
+    {
+        var workArea = SystemParameters.WorkArea;
+        Width = Math.Max(MinWidth, workArea.Width * 0.85);
+        Height = Math.Max(MinHeight, workArea.Height * 0.85);
+        Left = workArea.Left + (workArea.Width - Width) / 2;
+        Top = workArea.Top + (workArea.Height - Height) / 2;
+    }
+
+    private static HttpClient CreateHttpClient()
+    {
+        var client = new HttpClient { Timeout = TimeSpan.FromSeconds(30) };
+        client.DefaultRequestHeaders.UserAgent.Add(
+            new ProductInfoHeaderValue("MyFancyFences", "1.0"));
+        return client;
+    }
+
+    private void ApplyFallbackProperties()
+    {
+        _properties.Clear();
+        AddProperty("ID", _wallpaper.Id);
+        AddProperty("Rozdzielczość", _wallpaper.Resolution);
+        AddProperty("Kategoria", _wallpaper.Category);
+        AddProperty("Czystość", _wallpaper.Purity);
+        AddProperty("Typ", _wallpaper.FileType);
+        AddProperty("Rozmiar", FormatFileSize(_wallpaper.FileSize));
+    }
+
+    private async Task LoadDetailsAsync()
+    {
+        StartLoadingAnimation();
+        TagsLoadingText.Visibility = Visibility.Visible;
+
+        try
+        {
+            using var response = await HttpClient.GetAsync($"https://wallhaven.cc/api/v1/w/{Uri.EscapeDataString(_wallpaper.Id)}");
+            response.EnsureSuccessStatusCode();
+
+            await using var stream = await response.Content.ReadAsStreamAsync();
+            var result = await JsonSerializer.DeserializeAsync<WallhavenDetailsResponse>(stream);
+            var item = result?.Data;
+
+            if (item is not null)
+            {
+                _fullImageUrl = item.Path ?? _fullImageUrl;
+                WallpaperPreviewImage.Source = new BitmapImage(new Uri(item.Path ?? _wallpaper.ThumbnailUrl));
+
+                _properties.Clear();
+                AddProperty("ID", item.Id);
+                AddProperty("Rozdzielczość", item.Resolution);
+                AddProperty("Wymiary", FormatDimensions(item.DimensionX, item.DimensionY));
+                AddProperty("Ratio", item.Ratio);
+                AddProperty("Kategoria", item.Category);
+                AddProperty("Czystość", item.Purity);
+                AddProperty("Typ", item.FileType);
+                AddProperty("Rozmiar", FormatFileSize(item.FileSize));
+                AddProperty("Wyświetlenia", item.Views?.ToString());
+                AddProperty("Ulubione", item.Favorites?.ToString());
+                AddProperty("Dodano", item.CreatedAt);
+
+                var tags = item.Tags?
+                    .Select(tag => tag.Name)
+                    .Where(name => !string.IsNullOrWhiteSpace(name))
+                    .Cast<string>()
+                    .ToList() ?? [];
+
+                TagsItemsControl.ItemsSource = tags;
+                TagsLoadingText.Visibility = tags.Count == 0
+                    ? Visibility.Visible
+                    : Visibility.Collapsed;
+                TagsLoadingText.Text = tags.Count == 0
+                    ? "Brak tagów dla tej tapety."
+                    : string.Empty;
+            }
+        }
+        catch
+        {
+            TagsLoadingText.Text = "Nie udało się pobrać tagów.";
+        }
+        finally
+        {
+            StopLoadingAnimation();
+        }
+    }
+
+    private void AddProperty(string name, string? value)
+    {
+        if (!string.IsNullOrWhiteSpace(value))
+            _properties.Add(new PropertyRow(name, value));
+    }
+
+    private static string? FormatDimensions(int? width, int? height)
+    {
+        return width > 0 && height > 0
+            ? $"{width}×{height}"
+            : null;
+    }
+
+    private static string? FormatFileSize(long? bytes)
+    {
+        if (bytes is null or <= 0)
+            return null;
+
+        var value = bytes.Value;
+        string[] units = ["B", "KB", "MB", "GB"];
+        var unit = 0;
+        var size = (double)value;
+
+        while (size >= 1024 && unit < units.Length - 1)
+        {
+            size /= 1024;
+            unit++;
+        }
+
+        return $"{size:0.#} {units[unit]}";
+    }
+
+    private async Task<string?> DownloadWallpaperAsync()
+    {
+        if (string.IsNullOrWhiteSpace(_fullImageUrl))
+            return null;
+
+        var downloadsDirectory = Path.Combine(
+            Environment.GetFolderPath(Environment.SpecialFolder.UserProfile),
+            "Downloads");
+        var targetDirectory = Path.Combine(downloadsDirectory, "My Fancy Fences");
+        Directory.CreateDirectory(targetDirectory);
+
+        var extension = Path.GetExtension(new Uri(_fullImageUrl).AbsolutePath);
+        if (string.IsNullOrWhiteSpace(extension))
+            extension = ".jpg";
+
+        var targetPath = Path.Combine(targetDirectory, $"{_wallpaper.Id}{extension}");
+        if (File.Exists(targetPath))
+            return targetPath;
+
+        StatusText.Text = "Pobieranie tapety...";
+        using var response = await HttpClient.GetAsync(_fullImageUrl);
+        response.EnsureSuccessStatusCode();
+
+        await using var source = await response.Content.ReadAsStreamAsync();
+        await using var target = File.Create(targetPath);
+        await source.CopyToAsync(target);
+        return targetPath;
+    }
+
+    private async void DownloadButton_Click(object sender, RoutedEventArgs e)
+    {
+        try
+        {
+            var path = await DownloadWallpaperAsync();
+            StatusText.Text = path is null
+                ? "Nie udało się pobrać tapety."
+                : $"Pobrano: {path}";
+        }
+        catch
+        {
+            StatusText.Text = "Nie udało się pobrać tapety.";
+        }
+    }
+
+    private async void SetWallpaperButton_Click(object sender, RoutedEventArgs e)
+    {
+        try
+        {
+            var path = await DownloadWallpaperAsync();
+            if (path is null)
+            {
+                StatusText.Text = "Nie udało się pobrać tapety.";
+                return;
+            }
+
+            var success = SystemParametersInfo(
+                SpiSetDeskWallpaper,
+                0,
+                path,
+                SpifUpdateIniFile | SpifSendWinIniChange);
+
+            StatusText.Text = success
+                ? "Ustawiono jako tapetę."
+                : "Windows nie pozwolił ustawić tapety.";
+        }
+        catch
+        {
+            StatusText.Text = "Nie udało się ustawić tapety.";
+        }
+    }
+
+    private void StartLoadingAnimation()
+    {
+        LoadingOverlay.Visibility = Visibility.Visible;
+        var animation = new DoubleAnimation
+        {
+            From = 0,
+            To = 360,
+            Duration = TimeSpan.FromSeconds(.85),
+            RepeatBehavior = RepeatBehavior.Forever
+        };
+        LoadingRotateTransform.BeginAnimation(System.Windows.Media.RotateTransform.AngleProperty, animation);
+    }
+
+    private void StopLoadingAnimation()
+    {
+        LoadingRotateTransform.BeginAnimation(System.Windows.Media.RotateTransform.AngleProperty, null);
+        LoadingOverlay.Visibility = Visibility.Collapsed;
+    }
+
+    private void CloseButton_Click(object sender, RoutedEventArgs e) => Close();
+
+    private void MinimizeButton_Click(object sender, RoutedEventArgs e) =>
+        WindowState = WindowState.Minimized;
+
+    private void MaximizeButton_Click(object sender, RoutedEventArgs e)
+    {
+        if (_isCustomMaximized)
+        {
+            Left = _restoreBounds.Left;
+            Top = _restoreBounds.Top;
+            Width = _restoreBounds.Width;
+            Height = _restoreBounds.Height;
+            _isCustomMaximized = false;
+        }
+        else
+        {
+            _restoreBounds = new Rect(Left, Top, Width, Height);
+            var workArea = SystemParameters.WorkArea;
+            Left = workArea.Left;
+            Top = workArea.Top;
+            Width = workArea.Width;
+            Height = workArea.Height;
+            _isCustomMaximized = true;
+        }
+
+        MaximizeIcon.Kind = _isCustomMaximized
+            ? MahApps.Metro.IconPacks.PackIconLucideKind.Copy
+            : MahApps.Metro.IconPacks.PackIconLucideKind.Square;
+        UpdateWindowChrome();
+    }
+
+    private void TitleBar_MouseLeftButtonDown(object sender, MouseButtonEventArgs e)
+    {
+        if (!_isCustomMaximized && e.ButtonState == MouseButtonState.Pressed)
+            DragMove();
+    }
+
+    private void ResizeGrip_MouseLeftButtonDown(object sender, MouseButtonEventArgs e)
+    {
+        if (_isCustomMaximized || e.ButtonState != MouseButtonState.Pressed)
+            return;
+
+        _isResizing = true;
+        _resizeStartScreenPosition = PointToScreen(e.GetPosition(this));
+        _resizeStartWidth = ActualWidth;
+        _resizeStartHeight = ActualHeight;
+        ((UIElement)sender).CaptureMouse();
+        e.Handled = true;
+    }
+
+    private void ResizeGrip_MouseMove(object sender, MouseEventArgs e)
+    {
+        if (!_isResizing || e.LeftButton != MouseButtonState.Pressed)
+            return;
+
+        var currentScreenPosition = PointToScreen(e.GetPosition(this));
+        Width = Math.Max(MinWidth, _resizeStartWidth + currentScreenPosition.X - _resizeStartScreenPosition.X);
+        Height = Math.Max(MinHeight, _resizeStartHeight + currentScreenPosition.Y - _resizeStartScreenPosition.Y);
+        MaximizeIcon.Kind = MahApps.Metro.IconPacks.PackIconLucideKind.Square;
+    }
+
+    private void ResizeGrip_MouseLeftButtonUp(object sender, MouseButtonEventArgs e)
+    {
+        if (!_isResizing)
+            return;
+
+        _isResizing = false;
+        ((UIElement)sender).ReleaseMouseCapture();
+        e.Handled = true;
+    }
+
+    [DllImport("user32.dll", CharSet = CharSet.Unicode)]
+    private static extern bool SystemParametersInfo(
+        int action,
+        int param,
+        string value,
+        int update);
+
+    private sealed record PropertyRow(string Name, string Value);
+
+    private sealed class WallhavenDetailsResponse
+    {
+        [JsonPropertyName("data")]
+        public WallhavenDetailsItem? Data { get; init; }
+    }
+
+    private sealed class WallhavenDetailsItem
+    {
+        [JsonPropertyName("id")]
+        public string? Id { get; init; }
+
+        [JsonPropertyName("path")]
+        public string? Path { get; init; }
+
+        [JsonPropertyName("resolution")]
+        public string? Resolution { get; init; }
+
+        [JsonPropertyName("dimension_x")]
+        public int? DimensionX { get; init; }
+
+        [JsonPropertyName("dimension_y")]
+        public int? DimensionY { get; init; }
+
+        [JsonPropertyName("ratio")]
+        public string? Ratio { get; init; }
+
+        [JsonPropertyName("category")]
+        public string? Category { get; init; }
+
+        [JsonPropertyName("purity")]
+        public string? Purity { get; init; }
+
+        [JsonPropertyName("file_type")]
+        public string? FileType { get; init; }
+
+        [JsonPropertyName("file_size")]
+        public long? FileSize { get; init; }
+
+        [JsonPropertyName("views")]
+        public int? Views { get; init; }
+
+        [JsonPropertyName("favorites")]
+        public int? Favorites { get; init; }
+
+        [JsonPropertyName("created_at")]
+        public string? CreatedAt { get; init; }
+
+        [JsonPropertyName("tags")]
+        public List<WallhavenTag>? Tags { get; init; }
+    }
+
+    private sealed class WallhavenTag
+    {
+        [JsonPropertyName("name")]
+        public string? Name { get; init; }
+    }
+}

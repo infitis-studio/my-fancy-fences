@@ -1,0 +1,15 @@
+.vs/
+.agents/
+
+**/bin/
+**/obj/
+build-*/
+publish/
+publish-update/
+
+*.user
+*.suo
+*.log
+
+settings-safe*.json
+panel-state-before-delete.json
