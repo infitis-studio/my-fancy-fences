@@ -137,7 +137,7 @@
 
         <Style x:Key="SettingsTabStyle" TargetType="RadioButton">
             <Setter Property="Height" Value="34"/>
-            <Setter Property="Width" Value="158"/>
+            <Setter Property="Width" Value="145"/>
             <Setter Property="Margin" Value="4,0"/>
             <Setter Property="Foreground" Value="#FFA9A2A5"/>
             <Setter Property="Cursor" Value="Hand"/>
@@ -217,6 +217,9 @@
                                      GroupName="SettingsTabs" Style="{StaticResource SettingsTabStyle}"
                                      Checked="SettingsTab_Checked"/>
                         <RadioButton Content="Import / eksport" Tag="ImportExport"
+                                     GroupName="SettingsTabs" Style="{StaticResource SettingsTabStyle}"
+                                     Checked="SettingsTab_Checked"/>
+                        <RadioButton Content="Aktualizacja" Tag="Updates"
                                      GroupName="SettingsTabs" Style="{StaticResource SettingsTabStyle}"
                                      Checked="SettingsTab_Checked"/>
                     </StackPanel>
@@ -320,7 +323,7 @@
                                                                       HorizontalAlignment="Center"
                                                                       VerticalAlignment="Center"/>
                                         </Border>
-                                        <StackPanel Grid.Column="1" Margin="4,0,14,0">
+                                        <StackPanel Grid.Column="1" Margin="10,0,14,0">
                                             <TextBlock Text="{Binding Title}" FontWeight="SemiBold" FontSize="13"
                                                        TextTrimming="CharacterEllipsis"/>
                                             <TextBlock Text="{Binding FolderPath}" Margin="0,5,0,0"
@@ -366,6 +369,59 @@
                             </Grid>
                         </Border>
                     </StackPanel>
+
+                    <Grid x:Name="UpdatesTabContent" Margin="4,4,4,0" Visibility="Collapsed">
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="Auto"/>
+                            <RowDefinition Height="Auto"/>
+                            <RowDefinition Height="*"/>
+                        </Grid.RowDefinitions>
+
+                        <StackPanel>
+                            <TextBlock Text="Aktualizacja" FontSize="18" FontWeight="SemiBold"/>
+                            <TextBlock Text="Sprawdź dostępność nowej wersji na GitHubie"
+                                       Margin="0,4,0,18" Foreground="#FFA9A2A5" FontSize="11"/>
+                        </StackPanel>
+
+                        <Border Grid.Row="1" Padding="16" CornerRadius="8"
+                                Background="#FF1E1E21" BorderBrush="#FF303035" BorderThickness="1">
+                            <Grid>
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="38"/>
+                                    <ColumnDefinition Width="*"/>
+                                    <ColumnDefinition Width="Auto"/>
+                                </Grid.ColumnDefinitions>
+
+                                <iconPacks:PackIconLucide Kind="RefreshCw" Width="20" Height="20"
+                                                          Foreground="#FFCFC7CA" VerticalAlignment="Top"/>
+
+                                <StackPanel Grid.Column="1" Margin="0,0,18,0">
+                                    <TextBlock x:Name="UpdateStatusText"
+                                               Text="Otwórz zakładkę, aby sprawdzić aktualizacje"
+                                               FontWeight="SemiBold"/>
+                                    <TextBlock Margin="0,7,0,0" Foreground="#FFA9A2A5" FontSize="11">
+                                        <Run Text="Zainstalowana wersja: "/>
+                                        <Run x:Name="CurrentVersionText" Text="v0.1.0"/>
+                                    </TextBlock>
+                                    <TextBlock Margin="0,4,0,0" Foreground="#FFA9A2A5" FontSize="11">
+                                        <Run Text="Najnowsza wersja: "/>
+                                        <Run x:Name="LatestVersionText" Text="—"/>
+                                    </TextBlock>
+                                </StackPanel>
+
+                                <StackPanel Grid.Column="2" VerticalAlignment="Center">
+                                    <Button x:Name="CheckUpdatesButton"
+                                            Content="Sprawdź ponownie"
+                                            Click="CheckUpdatesButton_Click"/>
+                                    <Button x:Name="OpenReleaseButton"
+                                            Content="Otwórz wydanie"
+                                            Margin="0,8,0,0"
+                                            Visibility="Collapsed"
+                                            Click="OpenReleaseButton_Click"/>
+                                </StackPanel>
+                            </Grid>
+                        </Border>
+                    </Grid>
                 </Grid>
             </Grid>
 

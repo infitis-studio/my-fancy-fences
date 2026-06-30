@@ -5,6 +5,7 @@
     <TargetFramework>net10.0-windows</TargetFramework>
     <RootNamespace>My_Fancy_Fences</RootNamespace>
     <Description>A customizable, lightweight desktop organizer for Windows inspired by Stardock Fences.</Description>
+    <Version>1.0.1</Version>
     <RepositoryUrl>https://github.com/infitis-studio/my-fancy-fences</RepositoryUrl>
     <PackageLicenseExpression>MIT</PackageLicenseExpression>
     <Nullable>enable</Nullable>
@@ -20,6 +21,10 @@
 
   <ItemGroup>
     <PackageReference Include="MahApps.Metro.IconPacks.Lucide" Version="6.2.1" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Resource Include="Assets\ko-fi-support.png" />
   </ItemGroup>
 
 </Project>
