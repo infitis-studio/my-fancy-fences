@@ -6,6 +6,7 @@
     <RootNamespace>My_Fancy_Fences</RootNamespace>
     <Description>A customizable, lightweight desktop organizer for Windows inspired by Stardock Fences.</Description>
     <RepositoryUrl>https://github.com/infitis-studio/my-fancy-fences</RepositoryUrl>
+    <PackageLicenseExpression>MIT</PackageLicenseExpression>
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
     <UseWPF>true</UseWPF>

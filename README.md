@@ -46,3 +46,7 @@ My Fancy Fences is under active development. Features and saved-settings formats
 ## 🤝 Contributing
 
 Issues, suggestions, and pull requests are welcome.
+
+## 📄 License
+
+My Fancy Fences is available under the [MIT License](LICENSE).
