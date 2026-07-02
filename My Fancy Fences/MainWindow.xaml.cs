@@ -3,9 +3,11 @@ using System.ComponentModel;
 using System.Diagnostics;
 using System.IO;
 using System.Runtime.InteropServices;
+using System.Runtime;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 using System.Windows;
+using System.Windows.Controls;
 using System.Windows.Input;
 using System.Windows.Interop;
 using System.Windows.Media;
@@ -17,6 +19,7 @@ namespace My_Fancy_Fences;
 
 public partial class MainWindow : Window
 {
+    private const int MaxIconCacheEntries = 192;
     private static int _newPanelCount;
     private static readonly ConcurrentDictionary<string, ImageSource> IconCache =
         new(StringComparer.OrdinalIgnoreCase);
@@ -31,9 +34,12 @@ public partial class MainWindow : Window
     private const uint WmNull = 0x0000;
     private const uint NimAdd = 0x00000000;
     private const uint NimDelete = 0x00000002;
+    private const uint NimSetVersion = 0x00000004;
     private const uint NifMessage = 0x00000001;
     private const uint NifIcon = 0x00000002;
     private const uint NifTip = 0x00000004;
+    private const uint NifGuid = 0x00000020;
+    private const uint NotifyIconVersion4 = 4;
     private const uint MfString = 0x00000000;
     private const uint MfChecked = 0x00000008;
     private const uint MfSeparator = 0x00000800;
@@ -42,9 +48,14 @@ public partial class MainWindow : Window
     private const uint TrayExitCommand = 1;
     private const uint TrayCreatorCommand = 2;
     private const uint TrayAutoStartCommand = 3;
+    private const int WhMouseLowLevel = 14;
+    private const int WmLeftButtonDown = 0x0201;
+    private const int WmRightButtonDown = 0x0204;
+    private const int WmMiddleButtonDown = 0x0207;
     private const string AutoStartRegistryPath = @"Software\Microsoft\Windows\CurrentVersion\Run";
     private const string AutoStartRegistryValueName = "My Fancy Fences";
     private static readonly IntPtr HwndNotTopmost = new(-2);
+    private static readonly Guid TrayIconGuid = new("D84061E2-1F10-4F94-8A7F-A674EAE38E31");
 
     private IntPtr _windowHandle;
     private string _sourceFolder = Environment.GetFolderPath(Environment.SpecialFolder.DesktopDirectory);
@@ -106,6 +117,9 @@ public partial class MainWindow : Window
     private bool _isApplicationClosing;
     private bool _isPendingCreation;
     private FileSystemWatcher? _sourceFolderWatcher;
+    private string? _contextItemPath;
+    private IntPtr _itemPopupMouseHook;
+    private LowLevelMouseProc? _itemPopupMouseHookProc;
     private CancellationTokenSource? _itemsLoadCancellation;
     private readonly System.Windows.Threading.DispatcherTimer _folderRefreshTimer;
 
@@ -147,6 +161,7 @@ public partial class MainWindow : Window
             _itemsLoadCancellation = null;
             _sourceFolderWatcher?.Dispose();
             _sourceFolderWatcher = null;
+            RemoveItemPopupMouseHook();
             if (_isPrimaryWindow)
             {
                 _isApplicationClosing = true;
@@ -162,6 +177,7 @@ public partial class MainWindow : Window
             PositionAtTopRight();
         else
             PositionNewPanel();
+        _ = StabilizeDesktopLevelAsync();
         LoadDesktopItems();
         ApplyHeaderPresentation(_isHeaderHidden);
         if (_isPrimaryWindow)
@@ -174,6 +190,43 @@ public partial class MainWindow : Window
             await Task.Delay(250);
             if (IsLoaded)
                 UpdateCreatorPanelVisibility();
+
+            _ = CompactMemoryAfterStartupAsync();
+        }
+    }
+
+    private async Task CompactMemoryAfterStartupAsync()
+    {
+        await Task.Delay(TimeSpan.FromSeconds(8));
+        if (!IsLoaded)
+            return;
+
+        await Dispatcher.InvokeAsync(
+            () =>
+            {
+                GCSettings.LargeObjectHeapCompactionMode =
+                    GCLargeObjectHeapCompactionMode.CompactOnce;
+                GC.Collect(GC.MaxGeneration, GCCollectionMode.Forced, blocking: true, compacting: true);
+                GC.WaitForPendingFinalizers();
+                GC.Collect(GC.MaxGeneration, GCCollectionMode.Forced, blocking: true, compacting: true);
+            },
+            System.Windows.Threading.DispatcherPriority.ApplicationIdle);
+    }
+
+    private async Task StabilizeDesktopLevelAsync()
+    {
+        // Explorer can rebuild its desktop windows during sign-in and temporarily
+        // move newly created widgets above normal applications. Reapply the
+        // desktop-level position a few times while the shell settles.
+        var delays = new[] { 100, 400, 1200, 3000 };
+        foreach (var delay in delays)
+        {
+            await Task.Delay(delay);
+            if (!IsLoaded)
+                return;
+
+            if (IsVisible)
+                SendToDesktopLevel();
         }
     }
 
@@ -218,13 +271,16 @@ public partial class MainWindow : Window
             Size = (uint)Marshal.SizeOf<NotifyIconData>(),
             WindowHandle = _windowHandle,
             Id = 1,
-            Flags = NifMessage | NifIcon | NifTip,
+            Flags = NifMessage | NifIcon | NifTip | NifGuid,
             CallbackMessage = WmTrayIcon,
             IconHandle = _trayIconHandle,
-            Tip = "My Fancy Fences"
+            Tip = "My Fancy Fences",
+            GuidItem = TrayIconGuid
         };
 
         ShellNotifyIcon(NimAdd, ref _trayIconData);
+        _trayIconData.TimeoutOrVersion = NotifyIconVersion4;
+        ShellNotifyIcon(NimSetVersion, ref _trayIconData);
     }
 
     private static IntPtr CreateFenceTrayIcon()
@@ -306,14 +362,14 @@ public partial class MainWindow : Window
                 menu,
                 MfString | (_showCreatorPanel ? MfChecked : 0),
                 TrayCreatorCommand,
-                "Pokaż panel kreatora");
+                LocalizationService.T("Pokaż panel kreatora"));
             AppendMenu(
                 menu,
                 MfString | (IsAutoStartEnabled() ? MfChecked : 0),
                 TrayAutoStartCommand,
-                "Uruchamiaj przy starcie systemu");
+                LocalizationService.T("Uruchamiaj przy starcie systemu"));
             AppendMenu(menu, MfSeparator, 0, string.Empty);
-            AppendMenu(menu, MfString, TrayExitCommand, "Zamknij");
+            AppendMenu(menu, MfString, TrayExitCommand, LocalizationService.T("Zamknij"));
             SetForegroundWindow(_windowHandle);
 
             var command = TrackPopupMenu(
@@ -622,15 +678,23 @@ public partial class MainWindow : Window
             var shortcutIcon = TryGetInternetShortcutIcon(path);
             if (shortcutIcon is not null)
             {
-                IconCache.TryAdd(path, shortcutIcon);
+                CacheIcon(path, shortcutIcon);
                 return shortcutIcon;
             }
         }
 
         var icon = GetShellIconCore(path, useFileAttributes: false);
         if (icon is not null)
-            IconCache.TryAdd(path, icon);
+            CacheIcon(path, icon);
         return icon;
+    }
+
+    private static void CacheIcon(string path, ImageSource icon)
+    {
+        if (IconCache.Count >= MaxIconCacheEntries && !IconCache.ContainsKey(path))
+            IconCache.Clear();
+
+        IconCache[path] = icon;
     }
 
     private static ImageSource? GetGenericShellIcon(string path) =>
@@ -716,6 +780,140 @@ public partial class MainWindow : Window
         catch (Exception)
         {
             // A missing or inaccessible shortcut should not close the desktop widget.
+        }
+    }
+
+    private void DesktopItem_MouseRightButtonUp(object sender, MouseButtonEventArgs e)
+    {
+        if (sender is not FrameworkElement { Tag: string path })
+            return;
+
+        ItemActionsPopup.IsOpen = false;
+        _contextItemPath = path;
+        ItemActionsPopup.IsOpen = true;
+        InstallItemPopupMouseHook();
+        e.Handled = true;
+    }
+
+    private void InstallItemPopupMouseHook()
+    {
+        RemoveItemPopupMouseHook();
+        _itemPopupMouseHookProc = ItemPopupMouseHookCallback;
+        _itemPopupMouseHook = SetWindowsHookEx(
+            WhMouseLowLevel,
+            _itemPopupMouseHookProc,
+            IntPtr.Zero,
+            0);
+    }
+
+    private IntPtr ItemPopupMouseHookCallback(int code, IntPtr wParam, IntPtr lParam)
+    {
+        if (code >= 0 && ItemActionsPopup.IsOpen &&
+            (wParam.ToInt32() == WmLeftButtonDown ||
+             wParam.ToInt32() == WmRightButtonDown ||
+             wParam.ToInt32() == WmMiddleButtonDown) &&
+            !IsPointerInsideItemPopup())
+        {
+            Dispatcher.BeginInvoke(() => ItemActionsPopup.IsOpen = false);
+        }
+
+        return CallNextHookEx(_itemPopupMouseHook, code, wParam, lParam);
+    }
+
+    private bool IsPointerInsideItemPopup()
+    {
+        if (ItemActionsPopup.Child is not FrameworkElement child ||
+            !GetCursorPos(out var cursor))
+        {
+            return false;
+        }
+
+        var topLeft = child.PointToScreen(new Point(0, 0));
+        var bottomRight = child.PointToScreen(new Point(child.ActualWidth, child.ActualHeight));
+        return cursor.X >= topLeft.X && cursor.X <= bottomRight.X &&
+               cursor.Y >= topLeft.Y && cursor.Y <= bottomRight.Y;
+    }
+
+    private void ItemActionsPopup_Closed(object sender, EventArgs e)
+    {
+        RemoveItemPopupMouseHook();
+        _contextItemPath = null;
+    }
+
+    private void RemoveItemPopupMouseHook()
+    {
+        if (_itemPopupMouseHook != IntPtr.Zero)
+        {
+            UnhookWindowsHookEx(_itemPopupMouseHook);
+            _itemPopupMouseHook = IntPtr.Zero;
+        }
+
+        _itemPopupMouseHookProc = null;
+    }
+
+    private void DeleteDesktopItemMenuItem_Click(object sender, RoutedEventArgs e)
+    {
+        var path = _contextItemPath;
+        ItemActionsPopup.IsOpen = false;
+        _contextItemPath = null;
+
+        if (string.IsNullOrWhiteSpace(path) || (!File.Exists(path) && !Directory.Exists(path)))
+        {
+            return;
+        }
+
+        var itemName = Path.GetFileName(
+            path.TrimEnd(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar));
+        var confirmation = new ConfirmationWindow(
+            "Usunąć ikonę?",
+            $"Czy przenieść „{itemName}” do Kosza?\n\nElement zniknie z tego panelu.",
+            "Usuń",
+            "Anuluj")
+        {
+            Owner = this
+        };
+
+        confirmation.Loaded += (_, _) =>
+        {
+            confirmation.Topmost = true;
+            confirmation.Topmost = false;
+            confirmation.Activate();
+            confirmation.Focus();
+        };
+
+        if (confirmation.ShowDialog() != true)
+            return;
+
+        try
+        {
+            if (Directory.Exists(path))
+            {
+                Microsoft.VisualBasic.FileIO.FileSystem.DeleteDirectory(
+                    path,
+                    Microsoft.VisualBasic.FileIO.UIOption.OnlyErrorDialogs,
+                    Microsoft.VisualBasic.FileIO.RecycleOption.SendToRecycleBin);
+            }
+            else
+            {
+                Microsoft.VisualBasic.FileIO.FileSystem.DeleteFile(
+                    path,
+                    Microsoft.VisualBasic.FileIO.UIOption.OnlyErrorDialogs,
+                    Microsoft.VisualBasic.FileIO.RecycleOption.SendToRecycleBin);
+            }
+
+            IconCache.TryRemove(path, out _);
+            LoadDesktopItems();
+        }
+        catch (Exception exception)
+        {
+            var error = new ConfirmationWindow(
+                "Nie udało się usunąć ikony",
+                exception.Message,
+                "OK")
+            {
+                Owner = this
+            };
+            error.ShowDialog();
         }
     }
 
@@ -1529,6 +1727,9 @@ public partial class MainWindow : Window
         {
             // Saving preferences is optional and must not interrupt the desktop widget.
         }
+
+        if (_panelsWindow?.IsVisible == true)
+            _panelsWindow.UpdatePanels(CreatePanelOverviewList());
     }
 
     private static readonly JsonSerializerOptions JsonOptions = new()
@@ -1765,6 +1966,7 @@ public partial class MainWindow : Window
         {
             _panelsWindow = new PanelsWindow(panels, _useDoubleClickToOpen);
             _panelsWindow.PanelVisibilityChanged += PanelsWindow_PanelVisibilityChanged;
+            _panelsWindow.EditPanelRequested += PanelsWindow_EditPanelRequested;
             _panelsWindow.RefreshIconsRequested += (_, _) => RefreshAllPanelIcons();
             _panelsWindow.ActivationModeChanged += (_, args) =>
                 SetDoubleClickActivation(args.UseDoubleClickToOpen);
@@ -1815,7 +2017,7 @@ public partial class MainWindow : Window
     {
         var panels = new List<PanelOverviewItem>
         {
-            CreatePanelOverview(this, "Panel główny")
+            CreatePanelOverview(this, LocalizationService.T("Panel główny"))
         };
 
         panels.AddRange(_additionalPanels
@@ -1852,6 +2054,17 @@ public partial class MainWindow : Window
         _panelsWindow?.UpdatePanels(CreatePanelOverviewList());
     }
 
+    private void PanelsWindow_EditPanelRequested(object? sender, PanelEditRequestedEventArgs e)
+    {
+        if (!int.TryParse(e.PanelKey, out var panelIndex))
+            return;
+
+        var panel = panelIndex == 0
+            ? this
+            : _additionalPanels.FirstOrDefault(item => item._newPanelIndex == panelIndex);
+        panel?.OpenSettings();
+    }
+
     private static PanelOverviewItem CreatePanelOverview(MainWindow panel, string fallbackTitle)
     {
         var title = string.IsNullOrWhiteSpace(panel.TitleText.Text)
@@ -1865,8 +2078,8 @@ public partial class MainWindow : Window
             title,
             panel.HeaderIcon.Kind,
             panel._sourceFolder,
-            $"{width:0} × {height:0} px · ikony {panel._iconSize:0} px",
-            panel.IsVisible ? "Widoczny" : "Ukryty",
+            $"{width:0} × {height:0} px · {LocalizationService.T("ikony")} {panel._iconSize:0} px",
+            panel.IsVisible ? LocalizationService.T("Widoczny") : LocalizationService.T("Ukryty"),
             !panel.IsVisible);
     }
 
@@ -2066,6 +2279,8 @@ public partial class MainWindow : Window
         public int Y;
     }
 
+    private delegate IntPtr LowLevelMouseProc(int code, IntPtr wParam, IntPtr lParam);
+
     [DllImport("user32.dll", SetLastError = true)]
     private static extern IntPtr GetWindowLongPtr(IntPtr hWnd, int index);
 
@@ -2139,4 +2354,21 @@ public partial class MainWindow : Window
 
     [DllImport("user32.dll")]
     private static extern bool PostMessage(IntPtr window, uint message, IntPtr wParam, IntPtr lParam);
+
+    [DllImport("user32.dll", SetLastError = true)]
+    private static extern IntPtr SetWindowsHookEx(
+        int hookId,
+        LowLevelMouseProc callback,
+        IntPtr moduleHandle,
+        uint threadId);
+
+    [DllImport("user32.dll", SetLastError = true)]
+    private static extern bool UnhookWindowsHookEx(IntPtr hookHandle);
+
+    [DllImport("user32.dll")]
+    private static extern IntPtr CallNextHookEx(
+        IntPtr hookHandle,
+        int code,
+        IntPtr wParam,
+        IntPtr lParam);
 }

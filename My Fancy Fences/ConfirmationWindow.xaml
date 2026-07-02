@@ -65,6 +65,33 @@
                 </Setter.Value>
             </Setter>
         </Style>
+        <Style x:Key="PositiveConfirmButtonStyle" TargetType="Button">
+            <Setter Property="MinWidth" Value="104"/>
+            <Setter Property="Height" Value="36"/>
+            <Setter Property="Margin" Value="8,0,0,0"/>
+            <Setter Property="Padding" Value="14,0"/>
+            <Setter Property="Foreground" Value="#FFF0FFF6"/>
+            <Setter Property="Background" Value="#FF286443"/>
+            <Setter Property="BorderThickness" Value="0"/>
+            <Setter Property="Cursor" Value="Hand"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <Border x:Name="ButtonBorder" CornerRadius="6" Background="{TemplateBinding Background}">
+                            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="ButtonBorder" Property="Background" Value="#FF357F57"/>
+                            </Trigger>
+                            <Trigger Property="IsPressed" Value="True">
+                                <Setter TargetName="ButtonBorder" Property="Background" Value="#FF1F5035"/>
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
     </Window.Resources>
 
     <Border BorderBrush="#FF3A3438" BorderThickness="1" CornerRadius="12" ClipToBounds="True">
@@ -81,7 +108,7 @@
                 <RowDefinition Height="58"/>
             </Grid.RowDefinitions>
 
-            <Border CornerRadius="11,11,0,0" MouseLeftButtonDown="TitleBar_MouseLeftButtonDown">
+            <Border x:Name="HeaderBorder" CornerRadius="11,11,0,0" MouseLeftButtonDown="TitleBar_MouseLeftButtonDown">
                 <Border.Background>
                     <LinearGradientBrush StartPoint="0,0" EndPoint="1,0">
                         <GradientStop Color="#FF2B2025" Offset="0"/>
@@ -89,7 +116,7 @@
                     </LinearGradientBrush>
                 </Border.Background>
                 <StackPanel Orientation="Horizontal" Margin="16,0" VerticalAlignment="Center">
-                    <iconPacks:PackIconLucide Kind="TriangleAlert"
+                    <iconPacks:PackIconLucide x:Name="DialogIcon" Kind="TriangleAlert"
                                               Width="17"
                                               Height="17"
                                               Margin="0,0,10,0"
@@ -113,7 +140,7 @@
                     BorderBrush="#FF343035"
                     BorderThickness="0,1,0,0">
                 <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" VerticalAlignment="Center">
-                    <Button Content="Anuluj" Click="CancelButton_Click"/>
+                    <Button x:Name="CancelButton" Content="Anuluj" Click="CancelButton_Click"/>
                     <Button x:Name="ConfirmButton"
                             Style="{StaticResource ConfirmButtonStyle}"
                             Click="ConfirmButton_Click"/>

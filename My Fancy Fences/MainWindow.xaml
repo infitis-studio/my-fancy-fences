@@ -192,6 +192,7 @@
                             <Button Style="{StaticResource TileStyle}"
                                     ToolTip="{Binding Path}"
                                     Tag="{Binding Path}"
+                                    PreviewMouseRightButtonUp="DesktopItem_MouseRightButtonUp"
                                     PreviewMouseLeftButtonDown="DesktopItem_MouseLeftButtonDown">
                                 <Grid>
                                     <Grid.RowDefinitions>
@@ -235,6 +236,67 @@
                     MouseLeftButtonDown="ResizeArea_MouseLeftButtonDown"
                     MouseLeftButtonUp="ResizeArea_MouseLeftButtonUp"
                     MouseMove="ResizeArea_MouseMove"/>
+
+            <Popup x:Name="ItemActionsPopup"
+                   Placement="MousePoint"
+                   AllowsTransparency="True"
+                   StaysOpen="False"
+                   Closed="ItemActionsPopup_Closed"
+                   PopupAnimation="Fade">
+                <Border Width="166"
+                        Padding="5"
+                        CornerRadius="10"
+                        Background="#F51B1E24"
+                        BorderBrush="#2EFFFFFF"
+                        BorderThickness="1">
+                    <Border.Effect>
+                        <DropShadowEffect BlurRadius="18"
+                                          ShadowDepth="4"
+                                          Direction="270"
+                                          Opacity="0.38"
+                                          Color="#FF000000"/>
+                    </Border.Effect>
+                    <Button Height="38"
+                            Padding="11,0"
+                            Foreground="#FFFCA5A5"
+                            Background="Transparent"
+                            BorderThickness="0"
+                            Cursor="Hand"
+                            HorizontalContentAlignment="Stretch"
+                            Click="DeleteDesktopItemMenuItem_Click">
+                        <Button.Template>
+                            <ControlTemplate TargetType="Button">
+                                <Border x:Name="ActionBackground"
+                                        Padding="{TemplateBinding Padding}"
+                                        CornerRadius="7"
+                                        Background="{TemplateBinding Background}">
+                                    <ContentPresenter HorizontalAlignment="Stretch"
+                                                      VerticalAlignment="Center"/>
+                                </Border>
+                                <ControlTemplate.Triggers>
+                                    <Trigger Property="IsMouseOver" Value="True">
+                                        <Setter TargetName="ActionBackground" Property="Background" Value="#2BEF4444"/>
+                                    </Trigger>
+                                    <Trigger Property="IsPressed" Value="True">
+                                        <Setter TargetName="ActionBackground" Property="Background" Value="#46EF4444"/>
+                                    </Trigger>
+                                </ControlTemplate.Triggers>
+                            </ControlTemplate>
+                        </Button.Template>
+                        <StackPanel Orientation="Horizontal">
+                            <iconPacks:PackIconLucide Kind="Trash2"
+                                                       Width="16"
+                                                       Height="16"
+                                                       Margin="0,0,10,0"
+                                                       Foreground="#FFF87171"/>
+                            <TextBlock Text="Usuń ikonę"
+                                       FontSize="13"
+                                       FontWeight="SemiBold"
+                                       VerticalAlignment="Center"/>
+                        </StackPanel>
+                    </Button>
+                </Border>
+            </Popup>
 
         </Grid>
     </Border>

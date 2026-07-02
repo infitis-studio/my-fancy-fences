@@ -161,6 +161,122 @@
             </Setter>
         </Style>
 
+        <Style x:Key="LanguageComboBoxStyle" TargetType="ComboBox">
+            <Setter Property="Height" Value="34"/>
+            <Setter Property="Foreground" Value="#FFE7E2E4"/>
+            <Setter Property="Background" Value="#FF242427"/>
+            <Setter Property="BorderBrush" Value="#FF3B3B40"/>
+            <Setter Property="BorderThickness" Value="1"/>
+            <Setter Property="MaxDropDownHeight" Value="260"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="ComboBox">
+                        <Grid>
+                            <ToggleButton IsChecked="{Binding IsDropDownOpen, RelativeSource={RelativeSource TemplatedParent}, Mode=TwoWay}"
+                                          Focusable="False">
+                                <ToggleButton.Template>
+                                    <ControlTemplate TargetType="ToggleButton">
+                                        <Border x:Name="ComboSurface" Background="#FF242427"
+                                                BorderBrush="#FF3B3B40" BorderThickness="1" CornerRadius="6">
+                                            <Grid Margin="10,0,9,0">
+                                                <TextBlock Text="{Binding SelectedItem.Name, RelativeSource={RelativeSource AncestorType=ComboBox}}"
+                                                           Foreground="#FFE7E2E4" VerticalAlignment="Center"/>
+                                                <iconPacks:PackIconLucide Kind="ChevronDown" Width="14" Height="14"
+                                                                          Foreground="#FFA9A2A5"
+                                                                          HorizontalAlignment="Right" VerticalAlignment="Center"/>
+                                            </Grid>
+                                        </Border>
+                                        <ControlTemplate.Triggers>
+                                            <Trigger Property="IsMouseOver" Value="True">
+                                                <Setter TargetName="ComboSurface" Property="Background" Value="#FF303034"/>
+                                                <Setter TargetName="ComboSurface" Property="BorderBrush" Value="#FF4A4A50"/>
+                                            </Trigger>
+                                        </ControlTemplate.Triggers>
+                                    </ControlTemplate>
+                                </ToggleButton.Template>
+                            </ToggleButton>
+                            <Popup IsOpen="{TemplateBinding IsDropDownOpen}" Placement="Bottom"
+                                   AllowsTransparency="True" Focusable="False">
+                                <Border MinWidth="{Binding ActualWidth, RelativeSource={RelativeSource TemplatedParent}}"
+                                        Margin="0,4,0,0" Padding="4" CornerRadius="6"
+                                        Background="#FF202024" BorderBrush="#FF3B3B40" BorderThickness="1">
+                                    <ScrollViewer MaxHeight="260" VerticalScrollBarVisibility="Auto">
+                                        <ItemsPresenter/>
+                                    </ScrollViewer>
+                                </Border>
+                            </Popup>
+                        </Grid>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+            <Setter Property="ItemContainerStyle">
+                <Setter.Value>
+                    <Style TargetType="ComboBoxItem">
+                        <Setter Property="Height" Value="32"/>
+                        <Setter Property="Padding" Value="10,0"/>
+                        <Setter Property="Foreground" Value="#FFE7E2E4"/>
+                        <Setter Property="Background" Value="Transparent"/>
+                        <Setter Property="Template">
+                            <Setter.Value>
+                                <ControlTemplate TargetType="ComboBoxItem">
+                                    <Border x:Name="ItemSurface" CornerRadius="4" Background="{TemplateBinding Background}">
+                                        <ContentPresenter Margin="{TemplateBinding Padding}" VerticalAlignment="Center"/>
+                                    </Border>
+                                    <ControlTemplate.Triggers>
+                                        <Trigger Property="IsMouseOver" Value="True">
+                                            <Setter TargetName="ItemSurface" Property="Background" Value="#FF303034"/>
+                                        </Trigger>
+                                        <Trigger Property="IsSelected" Value="True">
+                                            <Setter TargetName="ItemSurface" Property="Background" Value="#FF3A3A40"/>
+                                        </Trigger>
+                                    </ControlTemplate.Triggers>
+                                </ControlTemplate>
+                            </Setter.Value>
+                        </Setter>
+                    </Style>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <Style x:Key="UpdateActionButtonStyle" TargetType="Button">
+            <Setter Property="MinWidth" Value="126"/>
+            <Setter Property="Height" Value="34"/>
+            <Setter Property="Padding" Value="14,0"/>
+            <Setter Property="Foreground" Value="#FFE4E0E2"/>
+            <Setter Property="Background" Value="#FF2A2B30"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <Border x:Name="Surface" Background="{TemplateBinding Background}"
+                                BorderBrush="#FF3A3B42" BorderThickness="1" CornerRadius="6">
+                            <ContentPresenter Margin="{TemplateBinding Padding}"
+                                              HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="Surface" Property="Background" Value="#FF36383E"/>
+                                <Setter TargetName="Surface" Property="BorderBrush" Value="#FF4A4C54"/>
+                            </Trigger>
+                            <MultiTrigger>
+                                <MultiTrigger.Conditions>
+                                    <Condition Property="Tag" Value="Release"/>
+                                    <Condition Property="IsMouseOver" Value="True"/>
+                                </MultiTrigger.Conditions>
+                                <Setter TargetName="Surface" Property="Background" Value="#FF345B47"/>
+                                <Setter TargetName="Surface" Property="BorderBrush" Value="#FF48785E"/>
+                            </MultiTrigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <Style x:Key="UpdateReleaseButtonStyle" TargetType="Button" BasedOn="{StaticResource UpdateActionButtonStyle}">
+            <Setter Property="Tag" Value="Release"/>
+            <Setter Property="Foreground" Value="#FFD9F4E4"/>
+            <Setter Property="Background" Value="#FF294638"/>
+        </Style>
+
     </Window.Resources>
 
     <Border BorderBrush="#FF3A3438" BorderThickness="1" CornerRadius="12" ClipToBounds="True">
@@ -219,7 +335,7 @@
                         <RadioButton Content="Import / eksport" Tag="ImportExport"
                                      GroupName="SettingsTabs" Style="{StaticResource SettingsTabStyle}"
                                      Checked="SettingsTab_Checked"/>
-                        <RadioButton Content="Aktualizacja" Tag="Updates"
+                        <RadioButton x:Name="UpdatesTabButton" Content="Aktualizacja" Tag="Updates"
                                      GroupName="SettingsTabs" Style="{StaticResource SettingsTabStyle}"
                                      Checked="SettingsTab_Checked"/>
                     </StackPanel>
@@ -278,6 +394,27 @@
                                               Unchecked="DoubleClickActivationCheckBox_Changed"/>
                                 </Grid>
                             </Border>
+                            <Border Margin="0,10,0,0" Padding="16" CornerRadius="8"
+                                    Background="#FF1E1E21" BorderBrush="#FF303035" BorderThickness="1">
+                                <Grid>
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="38"/>
+                                        <ColumnDefinition Width="*"/>
+                                        <ColumnDefinition Width="Auto"/>
+                                    </Grid.ColumnDefinitions>
+                                    <iconPacks:PackIconLucide Kind="Languages" Width="20" Height="20"
+                                                              Foreground="#FFCFC7CA" VerticalAlignment="Top"/>
+                                    <StackPanel Grid.Column="1" Margin="0,0,18,0">
+                                        <TextBlock Text="Język" FontWeight="SemiBold"/>
+                                        <TextBlock Text="Język interfejsu" Margin="0,6,0,0"
+                                                   Foreground="#FFA9A2A5" FontSize="11"/>
+                                    </StackPanel>
+                                    <ComboBox x:Name="LanguageComboBox" Grid.Column="2"
+                                              Width="170" Style="{StaticResource LanguageComboBoxStyle}"
+                                              DisplayMemberPath="Name" SelectedValuePath="Code"
+                                              SelectionChanged="LanguageComboBox_SelectionChanged"/>
+                                </Grid>
+                            </Border>
                         </StackPanel>
                     </Grid>
 
@@ -332,13 +469,22 @@
                                             <TextBlock Text="{Binding Details}" Margin="0,5,0,0"
                                                        Foreground="#FF777177" FontSize="10.5"/>
                                         </StackPanel>
-                                        <Button Grid.Column="2"
-                                                Content="{Binding Status}"
-                                                Tag="{Binding PanelKey}"
-                                                Style="{StaticResource StatusToggleButtonStyle}"
-                                                VerticalAlignment="Top"
-                                                HorizontalAlignment="Right"
-                                                Click="PanelVisibilityButton_Click"/>
+                                        <StackPanel Grid.Column="2" Margin="0,0,4,0"
+                                                    VerticalAlignment="Top" HorizontalAlignment="Right">
+                                            <Button Content="{Binding Status}"
+                                                    Tag="{Binding PanelKey}"
+                                                    Style="{StaticResource StatusToggleButtonStyle}"
+                                                    HorizontalAlignment="Center"
+                                                    Click="PanelVisibilityButton_Click"/>
+                                            <Button Content="Edytuj"
+                                                    Tag="{Binding PanelKey}"
+                                                    MinWidth="0" Height="20" Padding="10,2"
+                                                    Margin="0,10,0,0" FontSize="9.5"
+                                                    Background="#FF29292D"
+                                                    HorizontalAlignment="Center"
+                                                    Visibility="{Binding EditVisibility}"
+                                                    Click="EditPanelButton_Click"/>
+                                        </StackPanel>
                                     </Grid>
                                 </Border>
                             </DataTemplate>
@@ -383,7 +529,7 @@
                                        Margin="0,4,0,18" Foreground="#FFA9A2A5" FontSize="11"/>
                         </StackPanel>
 
-                        <Border Grid.Row="1" Padding="16" CornerRadius="8"
+                        <Border x:Name="UpdateStatusCard" Grid.Row="1" Padding="16" CornerRadius="8"
                                 Background="#FF1E1E21" BorderBrush="#FF303035" BorderThickness="1">
                             <Grid>
                                 <Grid.ColumnDefinitions>
@@ -392,7 +538,8 @@
                                     <ColumnDefinition Width="Auto"/>
                                 </Grid.ColumnDefinitions>
 
-                                <iconPacks:PackIconLucide Kind="RefreshCw" Width="20" Height="20"
+                                <iconPacks:PackIconLucide x:Name="UpdateStatusIcon"
+                                                          Kind="RefreshCw" Width="20" Height="20"
                                                           Foreground="#FFCFC7CA" VerticalAlignment="Top"/>
 
                                 <StackPanel Grid.Column="1" Margin="0,0,18,0">
@@ -407,17 +554,56 @@
                                         <Run Text="Najnowsza wersja: "/>
                                         <Run x:Name="LatestVersionText" Text="—"/>
                                     </TextBlock>
+                                    <Button x:Name="LatestReleaseLinkButton"
+                                            Width="58" MinWidth="0" Height="23"
+                                            Margin="0,8,0,0" Padding="7,0"
+                                            HorizontalAlignment="Left"
+                                            Background="#FF254333"
+                                            Foreground="#FFBFE8CF"
+                                            Visibility="Collapsed"
+                                            Click="LatestReleaseLinkButton_Click">
+                                        <Button.Template>
+                                            <ControlTemplate TargetType="Button">
+                                                <Border x:Name="LinkSurface" Background="{TemplateBinding Background}"
+                                                        CornerRadius="5">
+                                                    <StackPanel Orientation="Horizontal" HorizontalAlignment="Center">
+                                                        <iconPacks:PackIconLucide Kind="ExternalLink" Width="11" Height="11"
+                                                                                  Margin="0,0,5,0" VerticalAlignment="Center"/>
+                                                        <TextBlock Text="Link" FontSize="10" FontWeight="SemiBold"
+                                                                   VerticalAlignment="Center"/>
+                                                    </StackPanel>
+                                                </Border>
+                                                <ControlTemplate.Triggers>
+                                                    <Trigger Property="IsMouseOver" Value="True">
+                                                        <Setter TargetName="LinkSurface" Property="Background" Value="#FF315942"/>
+                                                    </Trigger>
+                                                </ControlTemplate.Triggers>
+                                            </ControlTemplate>
+                                        </Button.Template>
+                                    </Button>
                                 </StackPanel>
 
                                 <StackPanel Grid.Column="2" VerticalAlignment="Center">
                                     <Button x:Name="CheckUpdatesButton"
-                                            Content="Sprawdź ponownie"
-                                            Click="CheckUpdatesButton_Click"/>
+                                            Style="{StaticResource UpdateActionButtonStyle}"
+                                            Click="CheckUpdatesButton_Click">
+                                        <StackPanel Orientation="Horizontal">
+                                            <iconPacks:PackIconLucide Kind="RefreshCw" Width="15" Height="15"
+                                                                      Margin="0,0,8,0" VerticalAlignment="Center"/>
+                                            <TextBlock Text="Sprawdź ponownie" VerticalAlignment="Center"/>
+                                        </StackPanel>
+                                    </Button>
                                     <Button x:Name="OpenReleaseButton"
-                                            Content="Otwórz wydanie"
                                             Margin="0,8,0,0"
+                                            Style="{StaticResource UpdateReleaseButtonStyle}"
                                             Visibility="Collapsed"
-                                            Click="OpenReleaseButton_Click"/>
+                                            Click="OpenReleaseButton_Click">
+                                        <StackPanel Orientation="Horizontal">
+                                            <iconPacks:PackIconLucide Kind="Download" Width="15" Height="15"
+                                                                      Margin="0,0,8,0" VerticalAlignment="Center"/>
+                                            <TextBlock Text="Aktualizuj" VerticalAlignment="Center"/>
+                                        </StackPanel>
+                                    </Button>
                                 </StackPanel>
                             </Grid>
                         </Border>
@@ -426,9 +612,73 @@
             </Grid>
 
             <Border Grid.Row="2" Background="#FF1C1B1E" BorderBrush="#FF343035"
-                    BorderThickness="0,1,0,0" Padding="18,0" CornerRadius="0,0,11,11">
-                <Button Content="Zamknij" HorizontalAlignment="Right" VerticalAlignment="Center"
-                        Click="CloseButton_Click"/>
+                    BorderThickness="0,1,0,0" Padding="8,0,12,0" CornerRadius="0,0,11,11">
+                <Grid>
+                    <StackPanel Orientation="Horizontal" HorizontalAlignment="Left" VerticalAlignment="Center">
+                        <Button Width="160" MinWidth="0" Height="34" Padding="0"
+                                Background="Transparent" Click="FooterKoFiButton_Click">
+                            <Button.Template>
+                                <ControlTemplate TargetType="Button">
+                                    <Border x:Name="KoFiButtonSurface"
+                                            Width="140" Height="34"
+                                            Padding="8,0,12,0"
+                                            Background="#FF6698E3"
+                                            CornerRadius="8"
+                                            ClipToBounds="True">
+                                        <Image Source="/Assets/ko-fi-footer.png"
+                                               Stretch="Uniform"
+                                               RenderOptions.BitmapScalingMode="HighQuality"/>
+                                    </Border>
+                                    <ControlTemplate.Triggers>
+                                        <Trigger Property="IsMouseOver" Value="True">
+                                            <Setter TargetName="KoFiButtonSurface" Property="Opacity" Value="0.88"/>
+                                        </Trigger>
+                                    </ControlTemplate.Triggers>
+                                </ControlTemplate>
+                            </Button.Template>
+                        </Button>
+                        <Button x:Name="FooterUpdateButton"
+                                Width="112" MinWidth="0" Height="34" Margin="8,0,0,0" Padding="8,0"
+                                Background="#FF24252A" Click="FooterUpdateButton_Click">
+                            <Button.Template>
+                                <ControlTemplate TargetType="Button">
+                                    <Border x:Name="FooterUpdateSurface"
+                                            Background="{TemplateBinding Background}"
+                                            CornerRadius="6">
+                                        <ContentPresenter Margin="{TemplateBinding Padding}"
+                                                          HorizontalAlignment="Center"
+                                                          VerticalAlignment="Center"/>
+                                    </Border>
+                                    <ControlTemplate.Triggers>
+                                        <Trigger Property="IsMouseOver" Value="True">
+                                            <Setter TargetName="FooterUpdateSurface"
+                                                    Property="Background" Value="#FF34353A"/>
+                                        </Trigger>
+                                        <MultiTrigger>
+                                            <MultiTrigger.Conditions>
+                                                <Condition Property="Tag" Value="UpdateAvailable"/>
+                                                <Condition Property="IsMouseOver" Value="True"/>
+                                            </MultiTrigger.Conditions>
+                                            <Setter TargetName="FooterUpdateSurface"
+                                                    Property="Background" Value="#FF2F8055"/>
+                                        </MultiTrigger>
+                                    </ControlTemplate.Triggers>
+                                </ControlTemplate>
+                            </Button.Template>
+                            <StackPanel Orientation="Horizontal" HorizontalAlignment="Center">
+                                <iconPacks:PackIconLucide x:Name="FooterUpdateBellIcon"
+                                                          Kind="Bell" Width="16" Height="16"
+                                                          Margin="0,0,7,0" Foreground="#FFE8F7EE"
+                                                          Opacity="0.84" Visibility="Collapsed"/>
+                                <TextBlock x:Name="FooterUpdateText" Text="Aktualizacja"
+                                           Foreground="#FFD7D1D4" FontSize="10.5"
+                                           VerticalAlignment="Center"/>
+                            </StackPanel>
+                        </Button>
+                    </StackPanel>
+                    <Button Content="Zamknij" HorizontalAlignment="Right" VerticalAlignment="Center"
+                            Click="CloseButton_Click"/>
+                </Grid>
             </Border>
         </Grid>
     </Border>

@@ -1,11 +1,18 @@
 using System.Windows;
 using System.Windows.Input;
+using System.Windows.Media;
+using MahApps.Metro.IconPacks;
 
 namespace My_Fancy_Fences;
 
 public partial class ConfirmationWindow : Window
 {
-    public ConfirmationWindow(string title, string message, string confirmText)
+    public ConfirmationWindow(
+        string title,
+        string message,
+        string confirmText,
+        string? cancelText = null,
+        bool positiveConfirm = false)
     {
         InitializeComponent();
         Icon = AppIconProvider.Image;
@@ -13,6 +20,21 @@ public partial class ConfirmationWindow : Window
         DialogTitleText.Text = title;
         DialogMessageText.Text = message;
         ConfirmButton.Content = confirmText;
+        if (!string.IsNullOrWhiteSpace(cancelText))
+            CancelButton.Content = cancelText;
+
+        if (positiveConfirm)
+        {
+            Width = 440;
+            Height = 240;
+            DialogIcon.Kind = PackIconLucideKind.Download;
+            DialogIcon.Foreground = new SolidColorBrush(Color.FromRgb(0x82, 0xD3, 0xA3));
+            HeaderBorder.Background = new LinearGradientBrush(
+                Color.FromRgb(0x20, 0x35, 0x29),
+                Color.FromRgb(0x17, 0x1B, 0x19),
+                0);
+            ConfirmButton.Style = (Style)FindResource("PositiveConfirmButtonStyle");
+        }
     }
 
     private void ConfirmButton_Click(object sender, RoutedEventArgs e) => DialogResult = true;

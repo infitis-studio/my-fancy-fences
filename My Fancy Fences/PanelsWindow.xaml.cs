@@ -1,28 +1,17 @@
 using System.Diagnostics;
-using System.Net.Http;
-using System.Reflection;
-using System.Runtime.InteropServices;
-using System.Text.Json;
 using System.Windows;
 using System.Windows.Input;
-using System.Windows.Interop;
-using System.Windows.Threading;
 using MahApps.Metro.IconPacks;
 
 namespace My_Fancy_Fences;
 
 public partial class PanelsWindow : Window
 {
-    private const uint SwpNoMove = 0x0002;
-    private const uint SwpNoSize = 0x0001;
-    private const uint SwpNoActivate = 0x0010;
-
-    private SupportBannerWindow? _supportBannerWindow;
-    private static readonly HttpClient UpdateClient = CreateUpdateClient();
     private bool _hasCheckedForUpdates;
     private string? _latestReleaseUrl;
 
     public event EventHandler<PanelVisibilityChangedEventArgs>? PanelVisibilityChanged;
+    public event EventHandler<PanelEditRequestedEventArgs>? EditPanelRequested;
     public event EventHandler? RefreshIconsRequested;
     public event EventHandler<ActivationModeChangedEventArgs>? ActivationModeChanged;
 
@@ -31,105 +20,52 @@ public partial class PanelsWindow : Window
         InitializeComponent();
         Icon = AppIconProvider.Image;
         DoubleClickActivationCheckBox.IsChecked = useDoubleClickToOpen;
-        CurrentVersionText.Text = $"v{GetCurrentVersion()}";
+        LanguageComboBox.ItemsSource = LocalizationService.Languages;
+        LanguageComboBox.SelectedValue = LocalizationService.CurrentLanguage;
+        CurrentVersionText.Text = $"v{UpdateService.CurrentVersion.ToString(3)}";
         UpdatePanels(panels);
 
-        Loaded += PanelsWindow_Loaded;
-        LocationChanged += (_, _) => UpdateSupportBannerPosition();
-        SizeChanged += (_, _) => UpdateSupportBannerPosition();
-        StateChanged += (_, _) => UpdateSupportBannerVisibility();
-        Activated += (_, _) => PlaceSupportBannerBehind();
-        Closed += (_, _) => CloseSupportBanner();
+        _ = ApplyStartupUpdateStatusAsync();
     }
 
-    private void PanelsWindow_Loaded(object sender, RoutedEventArgs e)
+    private async Task ApplyStartupUpdateStatusAsync()
     {
-        if (_supportBannerWindow is not null)
-            return;
-
-        _supportBannerWindow = new SupportBannerWindow
-        {
-            BehindWindowHandle = new WindowInteropHelper(this).Handle
-        };
-        _supportBannerWindow.Clicked += SupportBannerWindow_Clicked;
-        _supportBannerWindow.Show();
-        UpdateSupportBannerPosition();
-        PlaceSupportBannerBehind();
+        var result = await UpdateService.CheckAsync();
+        if (result.IsUpdateAvailable)
+            ShowUpdateAvailableUi();
     }
 
-    private void UpdateSupportBannerPosition()
+    private void ShowUpdateAvailableUi()
     {
-        if (_supportBannerWindow is null || !_supportBannerWindow.IsLoaded)
-            return;
-
-        _supportBannerWindow.Left = Left - _supportBannerWindow.ActualWidth + 1;
-        _supportBannerWindow.Top = Top + ((ActualHeight - 63) / 2) - 72;
-        PlaceSupportBannerBehind();
+        UpdateStatusCard.Background = new System.Windows.Media.SolidColorBrush(
+            System.Windows.Media.Color.FromRgb(0x1B, 0x2C, 0x24));
+        UpdateStatusCard.BorderBrush = new System.Windows.Media.SolidColorBrush(
+            System.Windows.Media.Color.FromRgb(0x35, 0x64, 0x4B));
+        UpdateStatusIcon.Foreground = new System.Windows.Media.SolidColorBrush(
+            System.Windows.Media.Color.FromRgb(0x83, 0xD6, 0xA5));
+        UpdateStatusText.Foreground = new System.Windows.Media.SolidColorBrush(
+            System.Windows.Media.Color.FromRgb(0xD4, 0xF5, 0xE0));
+        FooterUpdateButton.Background = new System.Windows.Media.SolidColorBrush(
+            System.Windows.Media.Color.FromRgb(0x24, 0x6B, 0x45));
+        FooterUpdateButton.Tag = "UpdateAvailable";
+        FooterUpdateText.Text = "NEW UPDATE";
+        FooterUpdateText.FontWeight = FontWeights.SemiBold;
+        FooterUpdateText.Foreground = new System.Windows.Media.SolidColorBrush(
+            System.Windows.Media.Color.FromRgb(0xE8, 0xF7, 0xEE));
+        FooterUpdateText.Opacity = 0.86;
+        FooterUpdateBellIcon.Visibility = Visibility.Visible;
     }
 
-    private void PlaceSupportBannerBehind()
-    {
-        if (_supportBannerWindow is null || !_supportBannerWindow.IsLoaded)
-            return;
+    private void OpenUpdatesTab() => UpdatesTabButton.IsChecked = true;
 
-        var bannerHandle = new WindowInteropHelper(_supportBannerWindow).Handle;
-        var settingsHandle = new WindowInteropHelper(this).Handle;
-        if (bannerHandle == IntPtr.Zero || settingsHandle == IntPtr.Zero)
-            return;
-
-        SetWindowPos(
-            bannerHandle,
-            settingsHandle,
-            0,
-            0,
-            0,
-            0,
-            SwpNoMove | SwpNoSize | SwpNoActivate);
-    }
-
-    private void SupportBannerWindow_Clicked(object? sender, EventArgs e)
-    {
-        PlaceSupportBannerBehind();
-
+    private void FooterKoFiButton_Click(object sender, RoutedEventArgs e) =>
         Process.Start(new ProcessStartInfo("https://ko-fi.com/infitisstudio#linkModal")
         {
             UseShellExecute = true
         });
 
-        Dispatcher.BeginInvoke(
-            DispatcherPriority.ApplicationIdle,
-            new Action(PlaceSupportBannerBehind));
-    }
-
-    private void UpdateSupportBannerVisibility()
-    {
-        if (_supportBannerWindow is null)
-            return;
-
-        if (WindowState == WindowState.Minimized)
-            _supportBannerWindow.Hide();
-        else
-        {
-            _supportBannerWindow.Show();
-            UpdateSupportBannerPosition();
-        }
-    }
-
-    private void CloseSupportBanner()
-    {
-        _supportBannerWindow?.Close();
-        _supportBannerWindow = null;
-    }
-
-    [DllImport("user32.dll", SetLastError = true)]
-    private static extern bool SetWindowPos(
-        IntPtr windowHandle,
-        IntPtr insertAfter,
-        int x,
-        int y,
-        int width,
-        int height,
-        uint flags);
+    private void FooterUpdateButton_Click(object sender, RoutedEventArgs e) =>
+        OpenUpdatesTab();
 
     public void UpdatePanels(IReadOnlyList<PanelOverviewItem> panels)
     {
@@ -167,82 +103,75 @@ public partial class PanelsWindow : Window
     }
 
     private async void CheckUpdatesButton_Click(object sender, RoutedEventArgs e) =>
-        await CheckForUpdatesAsync();
+        await CheckForUpdatesAsync(force: true);
 
     private void OpenReleaseButton_Click(object sender, RoutedEventArgs e)
     {
-        if (string.IsNullOrWhiteSpace(_latestReleaseUrl))
-            return;
+        var confirmation = new ConfirmationWindow(
+            LocalizationService.T("Nowa wersja jest gotowa"),
+            LocalizationService.T("Program może pobrać i zainstalować najnowszą wersję automatycznie.\n\nCzy chcesz rozpocząć aktualizację?"),
+            LocalizationService.T("Aktualizuj"),
+            LocalizationService.T("Nie teraz"),
+            positiveConfirm: true)
+        {
+            Owner = this
+        };
 
-        Process.Start(new ProcessStartInfo(_latestReleaseUrl) { UseShellExecute = true });
+        _ = confirmation.ShowDialog();
     }
 
-    private async Task CheckForUpdatesAsync()
+    private void LatestReleaseLinkButton_Click(object sender, RoutedEventArgs e)
+    {
+        if (!string.IsNullOrWhiteSpace(_latestReleaseUrl))
+            Process.Start(new ProcessStartInfo(_latestReleaseUrl) { UseShellExecute = true });
+    }
+
+    private async Task CheckForUpdatesAsync(bool force = false)
     {
         CheckUpdatesButton.IsEnabled = false;
         OpenReleaseButton.Visibility = Visibility.Collapsed;
-        UpdateStatusText.Text = "Sprawdzanie aktualizacji…";
-        LatestVersionText.Text = "sprawdzanie…";
+        UpdateStatusText.Text = LocalizationService.T("Sprawdzanie aktualizacji…");
+        LatestVersionText.Text = LocalizationService.T("sprawdzanie…");
 
         try
         {
-            using var response = await UpdateClient.GetAsync(
-                "repos/infitis-studio/my-fancy-fences/releases/latest");
-            response.EnsureSuccessStatusCode();
+            var result = await UpdateService.CheckAsync(force);
+            _latestReleaseUrl = result.ReleaseUrl;
+            LatestVersionText.Text = result.LatestTag;
+            LatestReleaseLinkButton.Visibility = string.IsNullOrWhiteSpace(_latestReleaseUrl)
+                ? Visibility.Collapsed
+                : Visibility.Visible;
 
-            await using var stream = await response.Content.ReadAsStreamAsync();
-            using var document = await JsonDocument.ParseAsync(stream);
-            var root = document.RootElement;
-            var tag = root.GetProperty("tag_name").GetString() ?? string.Empty;
-            _latestReleaseUrl = root.GetProperty("html_url").GetString();
-            LatestVersionText.Text = tag;
-
-            var currentVersion = GetCurrentVersion();
-            if (!TryParseVersion(tag, out var latestVersion))
+            if (!result.Success || result.LatestVersion is null)
             {
-                UpdateStatusText.Text = "Nie udało się odczytać numeru najnowszej wersji";
-                OpenReleaseButton.Visibility = Visibility.Visible;
+                UpdateStatusText.Text = LocalizationService.T("Nie udało się połączyć z GitHubem");
+                LatestVersionText.Text = "—";
+                LatestReleaseLinkButton.Visibility = Visibility.Collapsed;
             }
-            else if (latestVersion > currentVersion)
+            else if (result.IsUpdateAvailable)
             {
-                UpdateStatusText.Text = "Dostępna jest nowa wersja";
+                UpdateStatusText.Text = LocalizationService.T("Dostępna jest nowa wersja");
                 OpenReleaseButton.Visibility = Visibility.Visible;
+                ShowUpdateAvailableUi();
             }
             else
             {
-                UpdateStatusText.Text = "Masz najnowszą wersję";
+                UpdateStatusText.Text = LocalizationService.T("Masz najnowszą wersję");
             }
 
             _hasCheckedForUpdates = true;
         }
         catch (Exception)
         {
-            UpdateStatusText.Text = "Nie udało się połączyć z GitHubem";
+            UpdateStatusText.Text = LocalizationService.T("Nie udało się połączyć z GitHubem");
             LatestVersionText.Text = "—";
+            LatestReleaseLinkButton.Visibility = Visibility.Collapsed;
         }
         finally
         {
             CheckUpdatesButton.IsEnabled = true;
         }
     }
-
-    private static HttpClient CreateUpdateClient()
-    {
-        var client = new HttpClient
-        {
-            BaseAddress = new Uri("https://api.github.com/"),
-            Timeout = TimeSpan.FromSeconds(10)
-        };
-        client.DefaultRequestHeaders.UserAgent.ParseAdd("My-Fancy-Fences-Update-Checker");
-        client.DefaultRequestHeaders.Accept.ParseAdd("application/vnd.github+json");
-        return client;
-    }
-
-    private static Version GetCurrentVersion() =>
-        Assembly.GetExecutingAssembly().GetName().Version ?? new Version(0, 1, 0);
-
-    private static bool TryParseVersion(string tag, out Version version) =>
-        Version.TryParse(tag.Trim().TrimStart('v', 'V'), out version!);
 
     private void TitleBar_MouseLeftButtonDown(object sender, MouseButtonEventArgs e)
     {
@@ -266,6 +195,12 @@ public partial class PanelsWindow : Window
             new PanelVisibilityChangedEventArgs(panelKey, !panel.IsHidden));
     }
 
+    private void EditPanelButton_Click(object sender, RoutedEventArgs e)
+    {
+        if (sender is System.Windows.Controls.Button { Tag: string panelKey })
+            EditPanelRequested?.Invoke(this, new PanelEditRequestedEventArgs(panelKey));
+    }
+
     private void RefreshIconsButton_Click(object sender, RoutedEventArgs e) =>
         RefreshIconsRequested?.Invoke(this, EventArgs.Empty);
 
@@ -278,6 +213,16 @@ public partial class PanelsWindow : Window
             this,
             new ActivationModeChangedEventArgs(DoubleClickActivationCheckBox.IsChecked == true));
     }
+
+    private void LanguageComboBox_SelectionChanged(
+        object sender,
+        System.Windows.Controls.SelectionChangedEventArgs e)
+    {
+        if (!IsLoaded || LanguageComboBox.SelectedValue is not string languageCode)
+            return;
+
+        LocalizationService.SetLanguage(languageCode);
+    }
 }
 
 public sealed record PanelOverviewItem(
@@ -287,8 +232,13 @@ public sealed record PanelOverviewItem(
     string FolderPath,
     string Details,
     string Status,
-    bool IsHidden);
+    bool IsHidden)
+{
+    public Visibility EditVisibility => IsHidden ? Visibility.Collapsed : Visibility.Visible;
+}
 
 public sealed record PanelVisibilityChangedEventArgs(string PanelKey, bool IsHidden);
+
+public sealed record PanelEditRequestedEventArgs(string PanelKey);
 
 public sealed record ActivationModeChangedEventArgs(bool UseDoubleClickToOpen);

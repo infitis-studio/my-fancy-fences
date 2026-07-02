@@ -713,7 +713,7 @@
                                             ToolTip="{Binding Resolution}"
                                             Click="WallpaperButton_Click">
                                         <Grid>
-                                            <Image Source="{Binding ThumbnailUrl}"
+                                            <Image Source="{Binding ThumbnailImage}"
                                                    Stretch="UniformToFill"
                                                    RenderOptions.BitmapScalingMode="HighQuality"/>
                                             <Border VerticalAlignment="Bottom"

@@ -42,7 +42,7 @@ public partial class WallpaperDetailsWindow : Window
             : wallpaper.FullImageUrl;
 
         PropertiesItemsControl.ItemsSource = _properties;
-        WallpaperPreviewImage.Source = new BitmapImage(new Uri(wallpaper.ThumbnailUrl));
+        WallpaperPreviewImage.Source = WallpaperCard.CreateImage(wallpaper.ThumbnailUrl, 720);
         ApplyFallbackProperties();
         SizeChanged += (_, _) => ApplyRoundedWindowClip();
 
@@ -51,6 +51,7 @@ public partial class WallpaperDetailsWindow : Window
             ApplyRoundedWindowClip();
             await LoadDetailsAsync();
         };
+        Closed += (_, _) => ReleaseImageResources();
     }
 
     private void ApplyRoundedWindowClip()
@@ -119,7 +120,9 @@ public partial class WallpaperDetailsWindow : Window
             if (item is not null)
             {
                 _fullImageUrl = item.Path ?? _fullImageUrl;
-                WallpaperPreviewImage.Source = new BitmapImage(new Uri(item.Path ?? _wallpaper.ThumbnailUrl));
+                WallpaperPreviewImage.Source = WallpaperCard.CreateImage(
+                    item.Path ?? _wallpaper.ThumbnailUrl,
+                    1400);
 
                 _properties.Clear();
                 AddProperty("ID", item.Id);
@@ -279,6 +282,15 @@ public partial class WallpaperDetailsWindow : Window
     {
         LoadingRotateTransform.BeginAnimation(System.Windows.Media.RotateTransform.AngleProperty, null);
         LoadingOverlay.Visibility = Visibility.Collapsed;
+    }
+
+    private void ReleaseImageResources()
+    {
+        StopLoadingAnimation();
+        WallpaperPreviewImage.Source = null;
+        TagsItemsControl.ItemsSource = null;
+        PropertiesItemsControl.ItemsSource = null;
+        _properties.Clear();
     }
 
     private void CloseButton_Click(object sender, RoutedEventArgs e) => Close();

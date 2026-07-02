@@ -8,11 +8,14 @@ using System.Windows.Controls;
 using System.Windows.Input;
 using System.Windows.Media;
 using System.Windows.Media.Animation;
+using System.Windows.Media.Imaging;
 
 namespace My_Fancy_Fences;
 
 public partial class WallpaperWindow : Window
 {
+    private const int MaxCachedWallpapers = 144;
+    private const double WallpaperCardPitch = 170;
     private static readonly HttpClient HttpClient = CreateHttpClient();
     private readonly List<string> _tags = [];
     private readonly ObservableCollection<WallpaperCard> _wallpapers = [];
@@ -59,7 +62,7 @@ public partial class WallpaperWindow : Window
             ApplyRoundedWindowClip();
             await ReloadWallpapersAsync();
         };
-        Closed += (_, _) => _loadCancellation?.Cancel();
+        Closed += (_, _) => ReleaseWallpaperResources();
     }
 
     private void ApplyRoundedWindowClip()
@@ -151,6 +154,8 @@ public partial class WallpaperWindow : Window
             foreach (var wallpaper in wallpapers)
                 _wallpapers.Add(wallpaper);
 
+            TrimWallpaperCache();
+
             _currentPage = requestedPage;
             _hasMorePages =
                 wallpapers.Count > 0 &&
@@ -183,6 +188,42 @@ public partial class WallpaperWindow : Window
         }
 
         await PrefetchIfViewportIsNotFilledAsync();
+    }
+
+    private void TrimWallpaperCache()
+    {
+        var removeCount = _wallpapers.Count - MaxCachedWallpapers;
+        if (removeCount <= 0)
+            return;
+
+        var columns = Math.Max(
+            1,
+            (int)(Math.Max(1, WallpapersScrollViewer.ViewportWidth) / 250));
+        var removedRows = (int)Math.Ceiling(removeCount / (double)columns);
+        var previousOffset = WallpapersScrollViewer.VerticalOffset;
+
+        for (var index = 0; index < removeCount; index++)
+        {
+            _wallpapers[0].ReleaseThumbnail();
+            _wallpapers.RemoveAt(0);
+        }
+
+        WallpapersScrollViewer.ScrollToVerticalOffset(
+            Math.Max(0, previousOffset - removedRows * WallpaperCardPitch));
+    }
+
+    private void ReleaseWallpaperResources()
+    {
+        _loadCancellation?.Cancel();
+        _loadCancellation?.Dispose();
+        _loadCancellation = null;
+        StopLoadingAnimation();
+        WallpapersItemsControl.ItemsSource = null;
+        TagsItemsControl.ItemsSource = null;
+        foreach (var wallpaper in _wallpapers)
+            wallpaper.ReleaseThumbnail();
+        _wallpapers.Clear();
+        _tags.Clear();
     }
 
     private async Task PrefetchIfViewportIsNotFilledAsync()
@@ -505,4 +546,24 @@ public sealed record WallpaperCard(
     string? Category,
     string? Purity,
     string? FileType,
-    long? FileSize);
+    long? FileSize)
+{
+    public ImageSource? ThumbnailImage { get; private set; } =
+        CreateImage(ThumbnailUrl, 320);
+
+    public void ReleaseThumbnail() => ThumbnailImage = null;
+
+    public static BitmapImage CreateImage(string url, int decodePixelWidth)
+    {
+        var image = new BitmapImage();
+        image.BeginInit();
+        image.UriSource = new Uri(url, UriKind.Absolute);
+        image.DecodePixelWidth = decodePixelWidth;
+        image.CacheOption = BitmapCacheOption.OnLoad;
+        image.CreateOptions = BitmapCreateOptions.IgnoreImageCache;
+        image.EndInit();
+        if (image.CanFreeze && !image.IsDownloading)
+            image.Freeze();
+        return image;
+    }
+}
