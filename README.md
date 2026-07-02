@@ -18,6 +18,16 @@
 
 ---
 
+## 📸 Screenshots
+
+### Desktop panels
+
+![My Fancy Fences desktop panels](assets/screenshots/desktop-panels.png)
+
+### Wallpaper browser
+
+![My Fancy Fences wallpaper browser](assets/screenshots/wallpaper-browser.png)
+
 ## ✨ Features
 
 - Multiple independent desktop panels
